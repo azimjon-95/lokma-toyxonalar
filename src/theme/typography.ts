@@ -1,13 +1,13 @@
 // Lokma To'yxonalari - Typography
 // Onest font family (400-800) as per TZ
 
+// @expo-google-fonts/onest nomlari (app/_layout.tsx da yuklanadi)
 export const fontFamily = {
-  regular: 'Onest-Regular',
-  medium: 'Onest-Medium',
-  semiBold: 'Onest-SemiBold',
-  bold: 'Onest-Bold',
-  // Fallback for web / system
-  system: 'System',
+  regular: 'Onest_400Regular',
+  medium: 'Onest_500Medium',
+  semiBold: 'Onest_600SemiBold',
+  bold: 'Onest_700Bold',
+  extraBold: 'Onest_800ExtraBold',
 } as const;
 
 export const fontSize = {
@@ -32,7 +32,7 @@ export const typography = {
   // Headings
   h1: {
     fontSize: fontSize['3xl'],
-    fontFamily: fontFamily.bold,
+    fontFamily: fontFamily.extraBold,
     lineHeight: fontSize['3xl'] * lineHeight.tight,
     letterSpacing: -0.5,
   },

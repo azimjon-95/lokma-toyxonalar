@@ -1,35 +1,43 @@
+import React, { useEffect, useState } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import * as SplashScreen from 'expo-splash-screen';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { StyleSheet } from 'react-native';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { useFonts, Onest_400Regular, Onest_500Medium, Onest_600SemiBold, Onest_700Bold, Onest_800ExtraBold } from '@expo-google-fonts/onest';
 import { colors } from '../src/theme';
+import { LocationProvider } from '../src/store/location';
+import { FavoritesProvider } from '../src/store/favorites';
+
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
 export default function RootLayout() {
+  const [fontsLoaded, fontError] = useFonts({ Onest_400Regular, Onest_500Medium, Onest_600SemiBold, Onest_700Bold, Onest_800ExtraBold });
+  const [queryClient] = useState(
+    () => new QueryClient({ defaultOptions: { queries: { staleTime: 60_000, retry: 2, refetchOnWindowFocus: false } } }),
+  );
+  const ready = fontsLoaded || !!fontError;
+
+  useEffect(() => {
+    if (ready) SplashScreen.hideAsync().catch(() => {});
+  }, [ready]);
+
+  if (!ready) return null;
+
   return (
-    <GestureHandlerRootView style={styles.root}>
-      <StatusBar style="dark" />
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          contentStyle: { backgroundColor: colors.background },
-          animation: 'slide_from_right',
-        }}
-      >
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen
-          name="venue/[slug]"
-          options={{
-            animation: 'slide_from_right',
-            presentation: 'card',
-          }}
-        />
-      </Stack>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <QueryClientProvider client={queryClient}>
+        <LocationProvider>
+          <FavoritesProvider>
+            <StatusBar style="dark" />
+            <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.white } }}>
+              <Stack.Screen name="(tabs)" />
+              <Stack.Screen name="venue/[slug]" />
+              <Stack.Screen name="+not-found" />
+            </Stack>
+          </FavoritesProvider>
+        </LocationProvider>
+      </QueryClientProvider>
     </GestureHandlerRootView>
   );
 }
-
-const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-  },
-});

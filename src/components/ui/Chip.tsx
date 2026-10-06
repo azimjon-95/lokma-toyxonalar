@@ -1,5 +1,5 @@
 import React from 'react';
-import { TouchableOpacity, Text, StyleSheet, ViewStyle } from 'react-native';
+import { TouchableOpacity, Text, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 import { colors } from '../../theme/colors';
 import { radius, spacing } from '../../theme/spacing';
 import { typography } from '../../theme/typography';
@@ -9,7 +9,7 @@ interface ChipProps {
   selected?: boolean;
   onPress?: () => void;
   variant?: 'default' | 'success' | 'soft';
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
   leftIcon?: React.ReactNode;
 }
 

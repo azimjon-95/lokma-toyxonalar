@@ -1,327 +1,129 @@
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Dimensions,
-  Image,
-} from 'react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import MapView, { Circle, Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import MapView, { Marker, Circle, PROVIDER_GOOGLE } from 'react-native-maps';
-import { colors, spacing, radius, typography, layout } from '../../src/theme';
-import { mockVenues } from '../../src/data/mockVenues';
-import { Button } from '../../src/components/ui/Button';
-
-const { width } = Dimensions.get('window');
+import { colors, layout, radius, spacing, typography, fontFamily } from '../../src/theme';
+import { useVenues } from '../../src/hooks/queries';
+import { useLocation } from '../../src/store/location';
+import { regionForRadius } from '../../src/lib/geo';
+import { formatPinPrice } from '../../src/lib/format';
+import { VenuePreview } from '../../src/components/map/VenuePreview';
+import { IconButton } from '../../src/components/ui/IconButton';
 
 const RADII = [10, 20, 50];
 
 export default function MapScreen() {
   const router = useRouter();
-  const [radiusKm, setRadiusKm] = useState(20);
-  const [selectedId, setSelectedId] = useState<string | null>(mockVenues[0]?.id);
+  const loc = useLocation();
+  const mapRef = useRef<MapView>(null);
+  const { data: venues = [], isFetching } = useVenues({ sort: 'distance' });
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const selected = useMemo(() => venues.find((v) => v.id === selectedId) ?? venues[0], [venues, selectedId]);
 
-  const selected = mockVenues.find((v) => v.id === selectedId) || mockVenues[0];
-
-  const region = {
-    latitude: 41.2856,
-    longitude: 69.2034,
-    latitudeDelta: 0.08,
-    longitudeDelta: 0.08,
-  };
+  useEffect(() => {
+    mapRef.current?.animateToRegion(regionForRadius(loc.coords, loc.radiusKm), 400);
+  }, [loc.coords, loc.radiusKm]);
 
   return (
     <View style={styles.container}>
       <MapView
+        ref={mapRef}
         style={StyleSheet.absoluteFill}
-        provider={PROVIDER_GOOGLE}
-        initialRegion={region}
+        provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
+        initialRegion={regionForRadius(loc.coords, loc.radiusKm)}
         showsUserLocation
         showsMyLocationButton={false}
+        toolbarEnabled={false}
+        onPress={() => {}}
       >
         <Circle
-          center={{ latitude: region.latitude, longitude: region.longitude }}
-          radius={radiusKm * 1000}
-          strokeColor={colors.primary}
-          fillColor={colors.mapRadius}
-          strokeWidth={1.5}
+          center={{ latitude: loc.coords.lat, longitude: loc.coords.lng }}
+          radius={loc.radiusKm * 1000}
+          strokeColor="rgba(201,66,10,0.55)"
+          fillColor="rgba(201,66,10,0.07)"
+          strokeWidth={2}
         />
-        {mockVenues.map((v) => (
-          <Marker
-            key={v.id}
-            coordinate={{ latitude: v.lat, longitude: v.lng }}
-            onPress={() => setSelectedId(v.id)}
-          >
-            <View
-              style={[
-                styles.pin,
-                selectedId === v.id && styles.pinSelected,
-              ]}
+        {venues.map((v) => {
+          const active = v.id === selected?.id;
+          return (
+            <Marker
+              key={v.id}
+              coordinate={{ latitude: v.lat, longitude: v.lng }}
+              onPress={() => setSelectedId(v.id)}
+              tracksViewChanges={false}
+              zIndex={active ? 2 : 1}
             >
-              <Text style={[styles.pinText, selectedId === v.id && styles.pinTextSelected]}>
-                {Math.round((v.price_from || 0) / 1000)}k
-              </Text>
-            </View>
-          </Marker>
-        ))}
+              <View style={[styles.pin, active && styles.pinActive]}>
+                <Text style={[styles.pinText, active && styles.pinTextActive]}>{formatPinPrice(v.price_from)}</Text>
+              </View>
+            </Marker>
+          );
+        })}
       </MapView>
 
-      {/* Top bar */}
-      <SafeAreaView style={styles.topBar} edges={['top']}>
-        <View style={styles.topContent}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-            <Ionicons name="chevron-back" size={22} color={colors.text} />
-          </TouchableOpacity>
-          <View style={styles.topInfo}>
-            <Text style={styles.topTitle}>Atrofimda · {mockVenues.length} ta to'yxona</Text>
-            <Text style={styles.topSub}>Chilonzor, Toshkent</Text>
+      <SafeAreaView edges={['top']} style={styles.top} pointerEvents="box-none">
+        <View style={styles.topRow}>
+          <IconButton icon="chevron-back" label="Orqaga" onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} style={styles.shadow} />
+          <View style={[styles.title, styles.shadow]}>
+            <Text style={styles.titleText}>Atrofimda · {venues.length} ta to‘yxona{isFetching ? '…' : ''}</Text>
+            <Text style={styles.titleSub} numberOfLines={1}>{loc.label}</Text>
           </View>
         </View>
-
-        {/* Radius switcher */}
-        <View style={styles.radiusRow}>
+        <View style={[styles.segment, styles.shadow]}>
           {RADII.map((r) => (
-            <TouchableOpacity
-              key={r}
-              style={[styles.radiusBtn, radiusKm === r && styles.radiusBtnActive]}
-              onPress={() => setRadiusKm(r)}
-            >
-              <Text style={[styles.radiusText, radiusKm === r && styles.radiusTextActive]}>
-                {r} km
-              </Text>
-            </TouchableOpacity>
+            <Pressable key={r} onPress={() => loc.setRadiusKm(r)} style={[styles.segBtn, loc.radiusKm === r && styles.segBtnActive]} accessibilityRole="button" accessibilityState={{ selected: loc.radiusKm === r }}>
+              <Text style={[styles.segText, loc.radiusKm === r && styles.segTextActive]}>{r} km</Text>
+            </Pressable>
           ))}
         </View>
       </SafeAreaView>
 
-      {/* My location button */}
-      <TouchableOpacity style={styles.myLocation}>
-        <Ionicons name="locate" size={22} color={colors.mapButton} />
-      </TouchableOpacity>
-
-      {/* Bottom card */}
-      {selected && (
-        <View style={styles.bottomCard}>
-          <View style={styles.cardImage}>
-            <Ionicons name="business-outline" size={32} color={colors.primary} />
+      <View style={styles.bottom} pointerEvents="box-none">
+        <IconButton
+          icon="locate"
+          label="Joylashuvimga qaytish"
+          color="#2F6BFF"
+          size={48}
+          style={[styles.locate, styles.shadow]}
+          onPress={() => {
+            loc.refresh();
+            mapRef.current?.animateToRegion(regionForRadius(loc.coords, loc.radiusKm), 400);
+          }}
+        />
+        {selected ? (
+          <VenuePreview venue={selected} onOpen={() => router.push({ pathname: '/venue/[slug]', params: { slug: selected.slug } })} />
+        ) : (
+          <View style={[styles.empty, styles.shadow]}>
+            <Ionicons name="search-outline" size={18} color={colors.textSecondary} />
+            <Text style={styles.emptyText}>{loc.radiusKm} km ichida to‘yxona topilmadi. Radiusni kattalashtiring.</Text>
           </View>
-          <View style={styles.cardContent}>
-            <View style={styles.cardTitleRow}>
-              <Text style={styles.cardName}>{selected.name}</Text>
-              <View style={styles.rating}>
-                <Ionicons name="star" size={12} color="#F59E0B" />
-                <Text style={styles.ratingText}>{selected.rating}</Text>
-              </View>
-            </View>
-            <Text style={styles.cardMeta}>
-              {selected.distance_km} km · {selected.capacity_min}–{selected.capacity_max} mehmon
-            </Text>
-            <View style={styles.cardFree}>
-              <View style={styles.greenDot} />
-              <Text style={styles.cardFreeText}>{selected.next_free_session}</Text>
-            </View>
-            <View style={styles.cardFooter}>
-              <Text style={styles.cardPrice}>
-                {selected.price_from?.toLocaleString()} so'm dan
-              </Text>
-              <Button
-                title="Ochish"
-                size="sm"
-                onPress={() => router.push(`/venue/${selected.slug}`)}
-              />
-            </View>
-          </View>
-        </View>
-      )}
+        )}
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  topBar: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    paddingHorizontal: layout.screenPadding,
-  },
-  topContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.white,
-    borderRadius: radius.xl,
-    padding: spacing[2],
-    gap: spacing[2],
-    shadowColor: colors.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 1,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.surfaceSecondary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  topInfo: {
-    flex: 1,
-  },
-  topTitle: {
-    ...typography.bodySemiBold,
-    color: colors.text,
-  },
-  topSub: {
-    ...typography.caption,
-    color: colors.textSecondary,
-  },
-  radiusRow: {
-    flexDirection: 'row',
-    alignSelf: 'center',
-    backgroundColor: colors.white,
-    borderRadius: radius.full,
-    padding: 4,
-    marginTop: spacing[3],
-    gap: 4,
-    shadowColor: colors.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 1,
-    shadowRadius: 6,
-    elevation: 2,
-  },
-  radiusBtn: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: radius.full,
-  },
-  radiusBtnActive: {
-    backgroundColor: colors.text,
-  },
-  radiusText: {
-    ...typography.captionMedium,
-    color: colors.textSecondary,
-  },
-  radiusTextActive: {
-    color: colors.white,
-  },
-  pin: {
-    backgroundColor: colors.white,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: radius.full,
-    borderWidth: 1.5,
-    borderColor: colors.border,
-  },
-  pinSelected: {
-    backgroundColor: colors.text,
-    borderColor: colors.text,
-  },
-  pinText: {
-    ...typography.captionMedium,
-    color: colors.text,
-    fontSize: 12,
-  },
-  pinTextSelected: {
-    color: colors.white,
-  },
-  myLocation: {
-    position: 'absolute',
-    right: 16,
-    bottom: 220,
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: colors.white,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: colors.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 1,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  bottomCard: {
-    position: 'absolute',
-    bottom: 24,
-    left: 16,
-    right: 16,
-    backgroundColor: colors.white,
-    borderRadius: radius.card,
-    flexDirection: 'row',
-    padding: spacing[3],
-    gap: spacing[3],
-    shadowColor: colors.shadowStrong,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 1,
-    shadowRadius: 16,
-    elevation: 6,
-  },
-  cardImage: {
-    width: 80,
-    height: 80,
-    borderRadius: radius.md,
-    backgroundColor: colors.primarySoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cardContent: {
-    flex: 1,
-  },
-  cardTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  cardName: {
-    ...typography.bodySemiBold,
-    color: colors.text,
-  },
-  rating: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-  },
-  ratingText: {
-    ...typography.captionMedium,
-  },
-  cardMeta: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-  cardFree: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    marginTop: 4,
-  },
-  greenDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: colors.success,
-  },
-  cardFreeText: {
-    ...typography.caption,
-    color: colors.success,
-  },
-  cardFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 8,
-  },
-  cardPrice: {
-    ...typography.bodySemiBold,
-    color: colors.text,
-  },
+  container: { flex: 1, backgroundColor: '#EEF0F3' },
+  shadow: { shadowColor: '#111318', shadowOpacity: 0.14, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 4 },
+  top: { position: 'absolute', top: 0, left: 0, right: 0, paddingHorizontal: 12, gap: 10 },
+  topRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingTop: spacing[2] },
+  title: { flex: 1, backgroundColor: colors.white, borderRadius: 24, paddingHorizontal: 16, paddingVertical: 7 },
+  titleText: { ...typography.bodySemiBold, fontFamily: fontFamily.bold, color: colors.text },
+  titleSub: { ...typography.caption, fontSize: 12, color: colors.textSecondary },
+  segment: { alignSelf: 'flex-start', flexDirection: 'row', backgroundColor: colors.white, borderRadius: 22, padding: 4, gap: 4 },
+  segBtn: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: 18 },
+  segBtnActive: { backgroundColor: colors.text },
+  segText: { ...typography.captionMedium, fontFamily: fontFamily.bold, color: colors.text },
+  segTextActive: { color: colors.white },
+  pin: { backgroundColor: colors.white, borderRadius: radius.full, paddingHorizontal: 10, paddingVertical: 6, borderWidth: 1, borderColor: colors.border },
+  pinActive: { backgroundColor: colors.text, borderColor: colors.text },
+  pinText: { ...typography.captionMedium, fontFamily: fontFamily.extraBold, fontSize: 12, color: colors.text },
+  pinTextActive: { color: colors.white },
+  bottom: { position: 'absolute', left: layout.screenPadding - 4, right: layout.screenPadding - 4, bottom: spacing[4], gap: spacing[3] },
+  locate: { alignSelf: 'flex-end' },
+  empty: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: colors.white, borderRadius: 20, padding: spacing[4] },
+  emptyText: { ...typography.caption, color: colors.textSecondary, flex: 1 },
 });
