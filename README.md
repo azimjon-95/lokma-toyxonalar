@@ -1,59 +1,70 @@
-# Lokma To'yxonalari — React Native (Expo)
+# Lokma To'yxonalari — mobil ilova (Expo / React Native)
 
-Senior-level wedding halls catalog for **Lokma Go** (Android + iOS + Web ready).
+Atrofdagi to'yxonalar katalogi: avtomatik joylashuv, xarita, bo'sh kunlar kalendari, menyu va xizmatlar bilan narx hisobi, bron.
+Android, iOS va Web (Telegram Mini App uchun asos) — bitta kod.
 
-## Quick Start
+## Ishga tushirish
 
 ```bash
-cd lokma-toyxonalar
 npm install
-npx expo start
+cp .env.example .env      # server manzili bo'lmasa bo'sh qoldiring — demo ma'lumotlar ishlaydi
+npx expo start            # QR kodni telefondagi Expo Go bilan skanerlang
 ```
 
-Then press `a` (Android) or `i` (iOS) or scan QR with Expo Go.
+Talablar: Node.js 20+, telefonda **Expo Go (SDK 57)**.
 
-## What's included
+| Buyruq | Vazifasi |
+|---|---|
+| `npm start` | dev server |
+| `npm run web` | brauzerda ochish |
+| `npm run typecheck` | TypeScript tekshiruvi |
+| `npm run export:web` | web uchun statik build (`dist/`) |
 
-### Screens (Figma matched + improved)
-- **Home** — auto location, search, "3 kun ichida bo'sh" carousel, filter chips, premium venue cards
-- **Map** — radius 10/20/50 km, price pins, bottom card
-- **Venue Detail** — gallery, calendar with session dots, menu packages, amenities, videographers, cortege, live quote, sticky "Bron qilish"
+## Serverga ulash
 
-### Design System (`src/theme`)
-- Colors from TZ (`#C9420A` primary, `#1F9D55` free, `#0E2A5C` map)
-- Typography scale (Onest ready)
-- Spacing + radius (button 14–18, card 22–26)
-- Soft shadows, 44px touch targets
+1. `.env` ga `EXPO_PUBLIC_API_URL=https://api.lokma.uz` yozing (oxirida `/` siz).
+2. Server **docs/API.md** dagi endpointlarni shu shaklda qaytarsin.
+3. Ilovani qayta ishga tushiring — boshqa hech narsa o'zgartirish shart emas.
 
-### Architecture
-- Expo Router (file-based)
-- TypeScript strict types from TZ data model
-- Mock data ready for API swap
-- Deeplink scheme: `lokmago://weddings` + `https://lokma.uz/toyxonalar`
+URL bo'sh bo'lsa ilova `src/services/mockApi.ts` bilan ishlaydi; u serverning aynan o'zi kabi javob beradi
+(narx formulasi, slot band qilish, 409 xatosi va h.k.), shuning uchun backend uchun namuna sifatida ham foydali.
 
-### Next (not yet coded)
-- Real API layer + hold 30-min
-- Payment (Click / Payme / Uzum)
-- Telegram Mini App web version (same design)
-- Favorites + My Bookings
-- Onest font loading
-
-## Structure
+## Tuzilma
 
 ```
-app/
-  (tabs)/index.tsx    → Home
-  (tabs)/map.tsx      → Map
-  venue/[slug].tsx    → Venue detail
+app/                         Expo Router (fayl = sahifa)
+  _layout.tsx                shriftlar, provayderlar (react-query, joylashuv, saralanganlar)
+  (tabs)/index.tsx           Bosh sahifa: qidiruv, filtr, "3 kun ichida bo'sh", kartalar
+  (tabs)/map.tsx             Xarita (Android: Google, iOS: Apple)
+  (tabs)/map.web.tsx         Web uchun xarita o'rniga ro'yxat
+  (tabs)/favorites.tsx       Saralanganlar
+  venue/[slug].tsx           To'yxona: galereya, kalendar, seanslar, menyu, videochi, kortej, hisob, bron
 src/
-  theme/              → Design tokens
-  components/         → UI + VenueCard
-  types/              → Full TZ model
-  data/mockVenues.ts  → Demo data
+  config/env.ts              API_URL, standart joylashuv va radius
+  services/api.ts            yagona ma'lumot manbai (server yoki mock)
+  services/http.ts           fetch: timeout, xatolar, Bearer token
+  services/mockApi.ts        demo server
+  services/pricing.ts        narx formulasi (server bilan bir xil bo'lishi kerak)
+  hooks/queries.ts           react-query hooklari
+  store/location.tsx         joylashuvni avtomatik aniqlash va kuzatish (1 km)
+  store/favorites.tsx        saralanganlar (AsyncStorage)
+  components/                UI, bosh sahifa, xarita, to'yxona komponentlari
+  lib/                       formatlash, sana, geo (haversine)
+  theme/                     ranglar, shrift (Onest), o'lchamlar
+docs/API.md                  server uchun API shartnomasi
 ```
 
-## Deeplink (Lokma Go)
+## Build (EAS)
 
-- Open: `lokmago://weddings` or `https://lokma.uz/toyxonalar`
-- Venue: `lokmago://weddings/venue/navroz-saroyi`
-- Return after booking: `lokmago://home`
+```bash
+npm i -g eas-cli && eas login
+eas build -p android --profile preview      # APK
+eas build -p ios --profile production
+```
+`eas.json` dagi `EXPO_PUBLIC_API_URL` qiymatlarini server tayyor bo'lganda to'ldiring.
+Android xaritasi uchun EAS secret: `GOOGLE_MAPS_ANDROID_KEY` (Google Cloud → Maps SDK for Android).
+
+## Deeplink
+
+- `https://lokma.uz/toyxonalar/...` (Android App Links, iOS Universal Links — serverda `assetlinks.json` / `apple-app-site-association` kerak)
+- `lokmago://venue/navroz-saroyi`
