@@ -146,6 +146,11 @@ export const mockApi = {
     const menu = v.menu.find((m) => m.id === req.menu_package_id);
     const session = SESSIONS.find((s) => s.code === req.session);
     if (!menu || !session) throw new ApiError('Noto‘g‘ri so‘rov', 422, 'validation');
+    const hall = v.halls.find((h) => h.id === req.hall_id);
+    if (!hall) throw new ApiError('Zal topilmadi', 422, 'validation');
+    if (req.guests < session.min_guests || req.guests > hall.capacity_max) {
+      throw new ApiError(`Mehmonlar soni ${session.min_guests} – ${hall.capacity_max} oralig‘ida bo‘lishi kerak`, 422, 'validation');
+    }
     const ppg = pricePerGuest(menu, session, isWeekend(parseISODate(req.date)), WEEKEND_FACTOR);
     const venue_total = ppg * req.guests;
     const extras = VENDORS.filter((x) => req.vendor_ids.includes(x.id)).map((x) => ({ vendor_id: x.id, name: x.name, type: x.type, price: x.price }));

@@ -1,5 +1,7 @@
 # Lokma To'yxonalari — Server API shartnomasi
 
+Server: **[lokma-toyxonalar-server](https://github.com/azimjon-95/lokma-toyxonalar-server)** — shu shartnomani to'liq bajaradi (integratsion testlar bilan).
+
 Ilova `EXPO_PUBLIC_API_URL` o'rnatilganda shu endpointlarni chaqiradi. O'rnatilmagan bo'lsa
 `src/services/mockApi.ts` aynan shu shakldagi javoblarni qaytaradi — server yozishda uni namuna sifatida ishlating.
 Barcha turlar: `src/types/index.ts`.
@@ -105,7 +107,17 @@ Slot band bo'lsa: `409 { "code": "slot_taken", "message": "Bu seans allaqachon b
 `(hall_id, date, session)` bazada unique bo'lishi shart. To'lov webhook'i kelganda slot `booked`, bron `confirmed` bo'ladi;
 `hold_until` o'tib ketsa slot qayta `free`.
 
-## Keyingi bosqich (ilovada hali chaqirilmaydi)
-- `GET /api/me/bookings`, `POST /api/bookings/{id}/cancel`
-- `POST /api/auth/telegram` — `initData` → token
-- `POST /api/payments/{click|payme|uzum}/callback`
+### Avtorizatsiya va "Mening bronlarim" (serverda tayyor, ilovada keyingi bosqich)
+- `POST /api/auth/telegram` — `{ "init_data": "<Telegram.WebApp.initData>" }` → `{ "token": "...", "user": {...} }`
+- `GET /api/me/bookings` — `Authorization: Bearer <token>` → `Booking[]`
+- `POST /api/bookings/{id}/cancel` — o'z bronini bekor qilish (Bearer)
+
+### Admin (`X-Admin-Key` sarlavhasi)
+To'yxona/xizmat qo'shish va tahrirlash, seansni qo'lda yopish, bronni tasdiqlash/bekor qilish — server README'sida.
+
+### Mehmonlar soni
+Minimum — seansning `min_guests` (nahorgi osh 200, to'y 150), maksimum — tanlangan zalning `capacity_max`.
+Chegaradan tashqarida `422` va tushunarli xabar qaytadi.
+
+## Keyingi bosqich
+- `POST /api/payments/{click|payme|uzum}/callback` — to'lov tasdiqlansa bron `confirmed`, slot `booked`

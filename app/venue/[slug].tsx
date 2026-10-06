@@ -51,7 +51,6 @@ export default function VenueScreen() {
   useEffect(() => {
     if (!venue) return;
     setMenuId((m) => m ?? venue.menu_packages[1]?.id ?? venue.menu_packages[0]?.id ?? null);
-    setGuests((g) => Math.min(Math.max(g, venue.guests_min), venue.guests_max));
   }, [venue]);
 
   // Tanlangan kun yo'q bo'lsa — oydagi birinchi bo'sh kun va seansni avtomatik tanlash
@@ -82,6 +81,13 @@ export default function VenueScreen() {
       ? { venue_id: venue.id, hall_id: hall.id, date, session, guests, menu_package_id: menu.id, vendor_ids: [videoId, carId].filter(Boolean) as string[] }
       : null;
   const quote = useQuote(quoteReq);
+
+  // Mehmon chegarasi: minimum seansga (nahorgi osh 200), maksimum tanlangan zalga bog'liq — server bilan bir xil
+  const guestsMin = sessionTpl?.min_guests ?? venue?.guests_min ?? 150;
+  const guestsMax = hall?.capacity_max ?? venue?.guests_max ?? 1000;
+  useEffect(() => {
+    setGuests((g) => Math.min(Math.max(g, guestsMin), guestsMax));
+  }, [guestsMin, guestsMax]);
 
   const eventType: EventTypeCode = sessionTpl?.event_types[0] ?? 'kechki';
   const subtitle = date && session ? `${formatDayLong(date)} · ${SESSION_LABEL[session]} ${sessionTpl?.start_time}–${sessionTpl?.end_time}` : '';
@@ -175,8 +181,8 @@ export default function VenueScreen() {
               onSelect={setMenuId}
               guests={guests}
               onGuests={setGuests}
-              min={venue.guests_min}
-              max={venue.guests_max}
+              min={guestsMin}
+              max={guestsMax}
               perGuest={sessionTpl ? pricePerGuest(menu, sessionTpl, weekend, venue.weekend_factor) : undefined}
               perGuestNote={`1 kishi uchun · ${sessionTpl ? SESSION_LABEL[sessionTpl.code].toLowerCase() : 'seans tanlang'}${weekend ? ', dam olish kuni' : ''}`}
             />
@@ -203,7 +209,11 @@ export default function VenueScreen() {
         </View>
 
         <View style={styles.section}>
-          <QuoteSummary quote={quoteReq ? quote.data : undefined} guests={guests} menuName={menu?.name ?? ''} depositPercent={venue.deposit_percent} />
+          {quoteReq && quote.isError ? (
+            <Text style={styles.quoteErr}>{(quote.error as Error).message}</Text>
+          ) : (
+            <QuoteSummary quote={quoteReq ? quote.data : undefined} guests={guests} menuName={menu?.name ?? ''} depositPercent={venue.deposit_percent} />
+          )}
         </View>
       </ScrollView>
 
@@ -212,7 +222,7 @@ export default function VenueScreen() {
           <Text style={styles.barSub} numberOfLines={1}>{sessionFree ? subtitle : 'Bo‘sh kun va seansni tanlang'}</Text>
           <Text style={styles.barTotal}>{quoteReq && quote.data ? formatSum(quote.data.total) : '—'}</Text>
         </View>
-        <Button title="Bron qilish" size="lg" disabled={!quoteReq || !quote.data} onPress={() => setSheet(true)} />
+        <Button title="Bron qilish" size="lg" disabled={!quoteReq || !quote.data || quote.isError} onPress={() => setSheet(true)} />
       </View>
 
       <BookingSheet
@@ -261,5 +271,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: layout.screenPadding, paddingTop: 12, backgroundColor: colors.white, borderTopWidth: 1, borderTopColor: colors.border,
   },
   barSub: { ...typography.caption, fontSize: 12, color: colors.textSecondary },
+  quoteErr: { ...typography.body, color: colors.error, backgroundColor: colors.errorBg, borderRadius: 14, padding: 14 },
   barTotal: { ...typography.h4, fontFamily: fontFamily.extraBold, color: colors.text },
 });

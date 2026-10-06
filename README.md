@@ -22,7 +22,10 @@ Talablar: Node.js 20+, telefonda **Expo Go (SDK 57)**.
 
 ## Serverga ulash
 
+Server: **[lokma-toyxonalar-server](https://github.com/azimjon-95/lokma-toyxonalar-server)** (Express + MongoDB).
+
 1. `.env` ga `EXPO_PUBLIC_API_URL=https://api.lokma.uz` yozing (oxirida `/` siz).
+   Lokal sinash: `EXPO_PUBLIC_API_URL=http://<kompyuter-IP>:4100` — telefon va kompyuter bir Wi-Fi'da bo'lsin.
 2. Server **docs/API.md** dagi endpointlarni shu shaklda qaytarsin.
 3. Ilovani qayta ishga tushiring — boshqa hech narsa o'zgartirish shart emas.
 
