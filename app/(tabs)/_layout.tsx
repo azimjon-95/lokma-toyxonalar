@@ -28,14 +28,15 @@ export default function TabsLayout() {
         tabBarStyle: {
           backgroundColor: colors.white,
           borderTopColor: colors.border,
-          ...(isWeb ? { height: 58 + insets.bottom, paddingTop: 8, paddingBottom: 8 + insets.bottom } : {}),
+          // Lokma Go BottomNav: 10px yuqori/past, 22px ikonka, 10px yozuv => 56px + pastki bo'shliq
+          ...(isWeb ? { height: 56 + insets.bottom, paddingTop: 10, paddingBottom: 10 + insets.bottom } : {}),
         },
         ...(isWeb ? { tabBarItemStyle: { justifyContent: 'center' as const, paddingVertical: 0 } } : {}),
         tabBarLabelStyle: {
-          fontFamily: fontFamily.semiBold,
-          fontSize: isWeb ? 10.5 : 12,
+          fontFamily: isWeb ? fontFamily.medium : fontFamily.semiBold,
+          fontSize: isWeb ? 10 : 12,
           // flexShrink: 0 — yozuv ikonka foydasiga siqilib kesilmasin
-          ...(isWeb ? { lineHeight: 14, marginTop: 2, flexShrink: 0 } : {}),
+          ...(isWeb ? { lineHeight: 12, marginTop: 2, flexShrink: 0 } : {}),
         },
       }}
     >

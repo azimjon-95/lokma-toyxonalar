@@ -16,13 +16,19 @@ export const colors = {
 
   // Neutrals
   white: '#FFFFFF',
-  background: '#F5F5F7',
+  /*
+   * Fon — iliq fil suyagi/shampan tusi (kulrang emas): to'y, nafislik, issiqlik.
+   * Oq kartalar va yumshoq soyalar shu fonda "ko'tarilib" ko'rinadi.
+   */
+  background: '#FAF4EE',
+  backgroundDeep: '#F4EAE0',
+  blush: '#F9E6EC',            // Sarlavha orqasidagi nozik pushti nur
   surface: '#FFFFFF',
-  surfaceSecondary: '#F8F8FA',
+  surfaceSecondary: '#F6EDE4',
 
   // Borders
-  border: '#EBECEF',
-  borderLight: '#F1F2F4',
+  border: '#EADFD4',
+  borderLight: '#F1E8DE',
   borderFocus: '#A61E4D',
 
   // Text

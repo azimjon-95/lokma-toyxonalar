@@ -1,6 +1,5 @@
 import React from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, typography, fontFamily, layout } from '../../theme';
 import { showLokmaSwitch, useLokma } from '../../lib/lokma';
 
@@ -22,11 +21,11 @@ function Tile({ img, title, sub, tone, onPress }: { img: number; title: string; 
       style={({ pressed }) => [styles.tile, tone === 'go' ? styles.go : styles.market, pressed && styles.pressed]}
     >
       <Image source={img} style={styles.img} resizeMode="contain" accessibilityIgnoresInvertColors />
+      {/* Nomlar TO'LIQ ko'rinadi: yo'nalish belgisi yo'q, sig'masa ikki qatorga o'tadi */}
       <View style={styles.text}>
-        <Text style={styles.title} numberOfLines={1}>{title}</Text>
-        <Text style={styles.sub} numberOfLines={1}>{sub}</Text>
+        <Text style={styles.title} numberOfLines={2}>{title}</Text>
+        <Text style={styles.sub} numberOfLines={2}>{sub}</Text>
       </View>
-      <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />
     </Pressable>
   );
 }
@@ -46,14 +45,14 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', gap: spacing[2], paddingHorizontal: layout.screenPadding, paddingTop: spacing[4], paddingBottom: spacing[1] },
   tile: {
     flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 6,
-    borderRadius: 18, borderWidth: 1, paddingVertical: 8, paddingLeft: 6, paddingRight: 8, minHeight: 64,
+    borderRadius: 18, borderWidth: 1, paddingVertical: 8, paddingLeft: 6, paddingRight: 8, minHeight: 66,
     shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 10, shadowOffset: { width: 0, height: 3 },
   },
   go: { backgroundColor: '#FFF4E8', borderColor: '#FFD2A6' },
   market: { backgroundColor: '#E9F8EF', borderColor: '#BFE8CF' },
   pressed: { transform: [{ scale: 0.97 }] },
-  img: { width: 46, height: 46 },
+  img: { width: 44, height: 44 },
   text: { flex: 1, minWidth: 0 },
-  title: { ...typography.bodySemiBold, fontFamily: fontFamily.bold, fontSize: 14, color: colors.text },
-  sub: { ...typography.caption, fontSize: 11, color: colors.textSecondary, marginTop: 1 },
+  title: { ...typography.bodySemiBold, fontFamily: fontFamily.bold, fontSize: 14, lineHeight: 17, color: colors.text },
+  sub: { ...typography.caption, fontSize: 10.5, lineHeight: 13, color: colors.textSecondary, marginTop: 1 },
 });

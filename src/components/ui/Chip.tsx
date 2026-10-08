@@ -62,8 +62,8 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   selected: {
-    backgroundColor: colors.text,
-    borderColor: colors.text,
+    backgroundColor: colors.mapButton,   // to'q olxo'ri — to'yxonalar uslubi
+    borderColor: colors.mapButton,
   },
   text: {
     ...typography.captionMedium,

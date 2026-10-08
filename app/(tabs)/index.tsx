@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { FlatList, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { FlatList, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -148,9 +148,6 @@ export default function HomeScreen() {
               <Ionicons name="options-outline" size={19} color={colors.text} />
               {hasAdvanced && <View style={styles.badgeDot} />}
             </Pressable>
-            <Pressable onPress={() => router.push('/map')} style={({ pressed }) => [styles.iconBtn, styles.mapIconBtn, pressed && styles.iconPressed]} accessibilityRole="button" accessibilityLabel="Xarita">
-              <Ionicons name="map" size={18} color={colors.white} />
-            </Pressable>
           </View>
         </View>
       )}
@@ -215,9 +212,16 @@ const SOFT = {
 } as const;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+    // Vebda yuqoridan pushti nur → iliq fon (mobil ilovada tekis iliq fon)
+    ...(Platform.OS === 'web'
+      ? ({ backgroundImage: 'linear-gradient(180deg, #F9E6EC 0px, #FBEFEA 220px, #FAF4EE 520px)' } as object)
+      : null),
+  },
   // Lokma Go bosh sahifasi sarlavhasi bilan bir xil bo'shliq (14 / 16 / 10)
-  header: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingTop: 14, paddingBottom: 10, backgroundColor: colors.background },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingTop: 14, paddingBottom: 10 },
   locBlock: { flex: 1, minWidth: 0 },
   locLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   locDot: { width: 7, height: 7, borderRadius: 4 },
@@ -230,7 +234,6 @@ const styles = StyleSheet.create({
     width: 40, height: 40, borderRadius: 14, backgroundColor: colors.white,
     alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.borderLight, ...SOFT,
   },
-  mapIconBtn: { backgroundColor: colors.primary, borderColor: colors.primary },
   iconPressed: { transform: [{ scale: 0.94 }] },
   badgeDot: { position: 'absolute', top: 8, right: 8, width: 8, height: 8, borderRadius: 4, backgroundColor: colors.primary, borderWidth: 1.5, borderColor: colors.white },
   searchBox: {
