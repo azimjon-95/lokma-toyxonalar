@@ -143,10 +143,16 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
   const started = useRef(false);
   useEffect(() => {
     if (started.current || !lokma.settled) return;
-    started.current = true;
-    if (lokma.defaultAddress) setPlace({ kind: 'address', address: lokma.defaultAddress });
-    else start();
-  }, [lokma.settled, lokma.defaultAddress, setPlace, start]);
+    if (lokma.defaultAddress) {
+      // Lokma manzili — darhol (fonda isitilayotganda ham: ma'lumotlar oldindan yuklanadi)
+      started.current = true;
+      setPlace({ kind: 'address', address: lokma.defaultAddress });
+    } else if (lokma.visible) {
+      // GPS ruxsati faqat sahifa ko'ringanda so'raladi (fonda so'rov chiqib ketmasin)
+      started.current = true;
+      start();
+    }
+  }, [lokma.settled, lokma.visible, lokma.defaultAddress, setPlace, start]);
   useEffect(() => () => watcher.current?.remove(), []);
 
   const value = useMemo(

@@ -1,6 +1,8 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { Linking, Platform } from 'react-native';
+import { router } from 'expo-router';
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
+import { setLang as setUiLang } from './i18n';
 
 /*
  * ═══ LOKMA GO BILAN KO'PRIK ═══
@@ -31,6 +33,9 @@ export interface LokmaUser {
   lastName?: string;
   phone?: string | null;
   photoUrl?: string;
+  username?: string;
+  photoInitials?: string;
+  telegramId?: string;
 }
 export interface LokmaContext {
   user: LokmaUser | null;
@@ -76,7 +81,10 @@ function sanitize(raw: unknown): LokmaContext | null {
     return { id: str(x.id, 64) || '', title: str(x.title, 80), address: str(x.address, 300), city: str(x.city, 80), lat: num(x.lat), lng: num(x.lng), labelId: str(x.labelId, 20) };
   }).filter((a) => a.id);
   return {
-    user: { firstName: str(u.firstName, 80), lastName: str(u.lastName, 80), phone: str(u.phone, 32) ?? null, photoUrl: str(u.photoUrl, 500) },
+    user: {
+      firstName: str(u.firstName, 80), lastName: str(u.lastName, 80), phone: str(u.phone, 32) ?? null, photoUrl: str(u.photoUrl, 500),
+      username: str(u.username, 64), photoInitials: str(u.photoInitials, 4), telegramId: str(u.telegramId, 24),
+    },
     addresses,
     defaultAddressId: str(r.defaultAddressId, 64) ?? null,
     lang: str(r.lang, 8),
@@ -84,7 +92,16 @@ function sanitize(raw: unknown): LokmaContext | null {
   };
 }
 
+/** Ota ilovadan so'ralgan amallar (profil, til, manzillar, bronlar) — natija Promise bilan */
+export type LokmaAction =
+  | 'updateUser' | 'addAddress' | 'removeAddress' | 'setDefaultAddress' | 'setLang'
+  | 'referral' | 'shareReferral' | 'myBookings' | 'cancelBooking';
+
 interface LokmaValue extends LokmaContext {
+  /** Sahifa hozir foydalanuvchiga ko'rinib turibdimi (fonda isitilgan bo'lishi mumkin) */
+  visible: boolean;
+  /** Lokma Go profilidagi amallarni ota ilova orqali bajarish (faqat Lokma ichida) */
+  rpc: <T = unknown>(action: LokmaAction, payload?: Record<string, unknown>) => Promise<T>;
   /** Lokma ilovasi ichida ochilganmi */
   embedded: boolean;
   /** Lokma ma'lumoti keldimi (yoki embedded emas — kutilmaydi) */
@@ -102,19 +119,41 @@ export function LokmaProvider({ children }: { children: React.ReactNode }) {
   const [parentOrigin, setParentOrigin] = useState<string | null>(null);
   // Iframe'da ma'lumot kutiladi (eng ko'pi 2.5 s), aks holda darhol tayyor
   const [settled, setSettled] = useState(!embedded || Boolean(readSaved()));
+  // Fonda isitilgan iframe ko'rinmaguncha GPS so'ramaydi va og'ir ishlarni kechiktiradi
+  const [visible, setVisible] = useState(!embedded);
+  const pending = useRef(new Map<string, { resolve: (v: any) => void; reject: (e: Error) => void; timer: ReturnType<typeof setTimeout> }>());
+  const parentOriginRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!embedded) return undefined;
     const onMsg = (e: MessageEvent) => {
       if (!ORIGINS.has(e.origin) || e.source !== window.parent) return;
-      const d = e.data as { type?: string; payload?: unknown } | null;
-      if (!d || d.type !== 'lokma-wedding:context') return;
-      const clean = sanitize(d.payload);
-      if (!clean) return;
+      const d = e.data as { type?: string; payload?: unknown; visible?: boolean; path?: string; id?: string; ok?: boolean; data?: unknown; error?: string } | null;
+      if (!d || typeof d.type !== 'string') return;
       setParentOrigin(e.origin);
-      setCtx(clean);
-      setSettled(true);
-      try { window.sessionStorage.setItem(STORE_KEY, JSON.stringify(clean)); } catch { /* yopiq */ }
+      parentOriginRef.current = e.origin;
+      if (d.type === 'lokma-wedding:context') {
+        const clean = sanitize(d.payload);
+        if (!clean) return;
+        setCtx(clean);
+        setSettled(true);
+        if (clean.lang) setUiLang(clean.lang); // til Lokma Go'dan
+        try { window.sessionStorage.setItem(STORE_KEY, JSON.stringify(clean)); } catch { /* yopiq */ }
+      } else if (d.type === 'lokma-wedding:visible') {
+        setVisible(Boolean(d.visible));
+      } else if (d.type === 'lokma-wedding:open') {
+        // Chuqur havola: faqat o'z sahifalarimiz (/venue/<slug>, /favorites, /profile, /my-bookings)
+        const path = String(d.path || '');
+        if (/^\/(venue\/[a-z0-9-]{1,80}|favorites|profile|my-bookings|map)?$/i.test(path)) {
+          try { router.navigate(path === '' ? '/' : (path as never)); } catch { /* router tayyor emas */ }
+        }
+      } else if (d.type === 'lokma-wedding:rpc-result' && d.id) {
+        const p = pending.current.get(d.id);
+        if (!p) return;
+        clearTimeout(p.timer);
+        pending.current.delete(d.id);
+        if (d.ok) p.resolve(d.data); else p.reject(new Error(String(d.error || 'Xatolik')));
+      }
     };
     window.addEventListener('message', onMsg);
     // Tayyorlik xabari — ma'lumotsiz, shuning uchun '*' xavfsiz
@@ -122,6 +161,15 @@ export function LokmaProvider({ children }: { children: React.ReactNode }) {
     const t = setTimeout(() => setSettled(true), 2500);
     return () => { window.removeEventListener('message', onMsg); clearTimeout(t); };
   }, []);
+
+  const rpc = useCallback(<T,>(action: LokmaAction, payload: Record<string, unknown> = {}) => new Promise<T>((resolve, reject) => {
+    const origin = parentOriginRef.current;
+    if (!embedded || !origin) { reject(new Error('Bu amal faqat Lokma Go ichida ishlaydi')); return; }
+    const id = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+    const timer = setTimeout(() => { pending.current.delete(id); reject(new Error('Javob kelmadi, qayta urinib ko‘ring')); }, 20_000);
+    pending.current.set(id, { resolve, reject, timer });
+    window.parent.postMessage({ type: 'lokma-wedding:rpc', id, action, payload }, origin);
+  }), []);
 
   const goToLokma = useCallback((to: '/' | '/market') => {
     if (embedded && parentOrigin) {
@@ -144,10 +192,12 @@ export function LokmaProvider({ children }: { children: React.ReactNode }) {
       lang: ctx?.lang,
       embedded,
       settled,
+      visible,
+      rpc,
       defaultAddress,
       goToLokma,
     };
-  }, [ctx, settled, goToLokma]);
+  }, [ctx, settled, visible, rpc, goToLokma]);
 
   /*
    * Lokma ichida xavfsiz zonani (notch, Telegram tugmalari, tizim paneli) Lokma

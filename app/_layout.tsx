@@ -9,9 +9,12 @@ import { colors } from '../src/theme';
 import { LocationProvider } from '../src/store/location';
 import { LokmaProvider } from '../src/lib/lokma';
 import { applyMobileWebFeel } from '../src/lib/webMobile';
+import { installAutoTranslate } from '../src/lib/i18n';
 
 // Vebda mobil ilova hissi (matn nusxalanmaydi, zoom/rezina yo'q) — modul yuklanganda bir marta
 applyMobileWebFeel();
+// <Text>/<TextInput> avtomatik tarjimasi (o'zbek lotin → kirill / rus) — src/lib/i18n.ts
+installAutoTranslate();
 import { FavoritesProvider } from '../src/store/favorites';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -40,6 +43,7 @@ export default function RootLayout() {
             <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.white } }}>
               <Stack.Screen name="(tabs)" />
               <Stack.Screen name="venue/[slug]" />
+              <Stack.Screen name="my-bookings" />
               <Stack.Screen name="+not-found" />
             </Stack>
           </FavoritesProvider>
