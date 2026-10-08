@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useFonts, Onest_400Regular, Onest_500Medium, Onest_600SemiBold, Onest_700Bold, Onest_800ExtraBold } from '@expo-google-fonts/onest';
 import { colors } from '../src/theme';
 import { LocationProvider } from '../src/store/location';
+import { LokmaProvider } from '../src/lib/lokma';
 import { FavoritesProvider } from '../src/store/favorites';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -27,6 +28,8 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <QueryClientProvider client={queryClient}>
+        {/* Lokma Go ichida ochilganda foydalanuvchi ma'lumoti va qaytish tugmalari (src/lib/lokma.tsx) */}
+        <LokmaProvider>
         <LocationProvider>
           <FavoritesProvider>
             <StatusBar style="dark" />
@@ -37,6 +40,7 @@ export default function RootLayout() {
             </Stack>
           </FavoritesProvider>
         </LocationProvider>
+        </LokmaProvider>
       </QueryClientProvider>
     </GestureHandlerRootView>
   );

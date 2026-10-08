@@ -7,6 +7,7 @@ import type { BookingRequest } from '../../types';
 import { useCreateBooking } from '../../hooks/queries';
 import { formatPhone, formatSum, isValidPhone } from '../../lib/format';
 import { Button } from '../ui/Button';
+import { useLokma } from '../../lib/lokma';
 
 interface Props {
   visible: boolean;
@@ -21,11 +22,27 @@ export function BookingSheet({ visible, onClose, request, summary }: Props) {
   const [phone, setPhone] = useState('+998 ');
   const [touched, setTouched] = useState(false);
   const booking = useCreateBooking();
+  const lokma = useLokma();
 
   useEffect(() => {
     if (visible) booking.reset();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
+
+  /*
+   * Lokma ichida — ism va telefon Lokma profilidan avtomatik (mijoz qayta
+   * yozmaydi). Mijoz o'zgartirishi mumkin; faqat bo'sh maydon to'ldiriladi.
+   */
+  useEffect(() => {
+    if (!visible || !lokma.user) return;
+    const full = [lokma.user.firstName, lokma.user.lastName].filter(Boolean).join(' ').trim();
+    if (full) setName((n) => (n.trim() ? n : full));
+    const digits = String(lokma.user.phone || '').replace(/\D/g, '');
+    if (digits.length >= 9) {
+      const local = digits.length >= 12 && digits.startsWith('998') ? digits.slice(3, 12) : digits.slice(-9);
+      setPhone((p) => (p.replace(/\D/g, '').length > 3 ? p : formatPhone(local)));
+    }
+  }, [visible, lokma.user]);
 
   const nameOk = name.trim().length >= 2;
   const phoneOk = isValidPhone(phone);

@@ -14,6 +14,8 @@ import { EmptyState, ErrorState, Loading } from '../../src/components/ui/ScreenS
 import { useFreeSoon, useVenues } from '../../src/hooks/queries';
 import { useDebounced } from '../../src/hooks/useDebounced';
 import { useLocation } from '../../src/store/location';
+import { LocationSheet } from '../../src/components/home/LocationSheet';
+import { LokmaSwitch } from '../../src/components/home/LokmaSwitch';
 import { addDays, rangeLabel, startOfToday } from '../../src/lib/dates';
 import type { QuickFilter, VenueListItem } from '../../src/types';
 
@@ -34,6 +36,9 @@ export default function HomeScreen() {
   const [chip, setChip] = useState<QuickFilter>('all');
   const [adv, setAdv] = useState<Omit<AdvancedFilter, 'radiusKm'>>({ sort: 'distance' });
   const [filterOpen, setFilterOpen] = useState(false);
+  const [placeOpen, setPlaceOpen] = useState(false);
+  // Hudud matni: butun O'zbekiston tanlansa km ko'rsatilmaydi
+  const areaText = loc.place.kind === 'all' ? 'butun O‘zbekiston bo‘yicha' : `${loc.radiusKm} km atrofingizda`;
   const q = useDebounced(search.trim());
 
   const venues = useVenues({ q, filter: chip, event_type: adv.event_type, sort: adv.sort });
@@ -59,7 +64,7 @@ export default function HomeScreen() {
             <View style={styles.sectionHead}>
               <Text style={styles.h1}>3 kun ichida bo‘sh</Text>
               <Text style={styles.sub}>
-                {rangeLabel(today, addDays(today, 2))} · {loc.radiusKm} km atrofingizda
+                {rangeLabel(today, addDays(today, 2))} · {areaText}
               </Text>
             </View>
             <FreeSoonCarousel items={freeSoon.data!} onPress={openVenue} />
@@ -76,26 +81,33 @@ export default function HomeScreen() {
         </View>
       </View>
     ),
-    [freeSoon.data, chip, venues.data, adv.sort, loc.radiusKm, openVenue, today],
+    [freeSoon.data, chip, venues.data, adv.sort, areaText, openVenue, today],
   );
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
-        <Pressable onPress={loc.refresh} accessibilityRole="button" accessibilityLabel="Joylashuvni yangilash" style={{ flex: 1 }}>
+        {/* Bosilsa — hudud tanlash: Lokma manzillari, GPS, boshqa hudud, butun O'zbekiston */}
+        <Pressable onPress={() => setPlaceOpen(true)} accessibilityRole="button" accessibilityLabel="Hududni tanlash" style={{ flex: 1 }}>
           <View style={styles.locLabelRow}>
             <View style={[styles.locDot, { backgroundColor: loc.status === 'ready' ? colors.success : loc.status === 'locating' ? '#F0A35E' : colors.textTertiary }]} />
             <Text style={styles.locLabel}>
-              {loc.status === 'locating' ? 'Joylashuv aniqlanmoqda…' : loc.status === 'ready' ? 'Joylashuv · avtomatik' : 'Joylashuv aniqlanmadi · bosing'}
+              {loc.place.kind === 'address' ? 'Mening manzilim'
+                : loc.place.kind === 'region' ? 'Tanlangan hudud'
+                  : loc.place.kind === 'all' ? 'Barcha to‘yxonalar'
+                    : loc.status === 'locating' ? 'Joylashuv aniqlanmoqda…' : loc.status === 'ready' ? 'Joylashuv · avtomatik' : 'Joylashuv aniqlanmadi · bosing'}
             </Text>
           </View>
           <View style={styles.locRow}>
             <Text style={styles.locText} numberOfLines={1}>{loc.label}</Text>
-            <Ionicons name="refresh" size={15} color={colors.textSecondary} />
+            <Ionicons name="chevron-down" size={16} color={colors.textSecondary} />
           </View>
         </Pressable>
         <IconButton icon="heart-outline" label="Saralanganlar" variant="outline" onPress={() => router.push('/favorites')} />
       </View>
+
+      {/* Lokma Go / Lokma Market'ga qaytish */}
+      <LokmaSwitch />
 
       <View style={styles.searchRow}>
         <View style={styles.searchBox}>
@@ -163,6 +175,8 @@ export default function HomeScreen() {
           style={styles.list}
         />
       )}
+
+      <LocationSheet visible={placeOpen} onClose={() => setPlaceOpen(false)} />
 
       <FilterSheet
         visible={filterOpen}
