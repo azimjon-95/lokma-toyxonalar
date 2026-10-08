@@ -28,6 +28,8 @@ interface LocationValue {
   label: string;
   status: Status;
   isFallback: boolean;
+  /** Qo'shimcha matn: manzilning to'liq ko'rinishi ("Uy | Namangan, ...") */
+  detail: string;
   radiusKm: number;
   setRadiusKm: (km: number) => void;
   refresh: () => void;
@@ -60,6 +62,7 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
   const lastLabelAt = useRef<LatLng | null>(null);
   const lokma = useLokma();
   const [place, setPlaceState] = useState<{ kind: PlaceKind; id?: string }>({ kind: 'gps' });
+  const [detail, setDetail] = useState('');
   // GPS kuzatuvi faqat 'gps' rejimida yangilaydi (qo'lda tanlangan joyni bosib ketmasin)
   const placeRef = useRef<PlaceKind>('gps');
 
@@ -78,6 +81,7 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
   const start = useCallback(async () => {
     placeRef.current = 'gps';
     setPlaceState({ kind: 'gps' });
+    setDetail('');
     setStatus('locating');
     try {
       const { status: perm } = await Location.requestForegroundPermissionsAsync();
@@ -113,16 +117,20 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
       const a = p.address;
       setCoords({ lat: a.lat as number, lng: a.lng as number });
       setLabel(a.title || a.address || 'Mening manzilim');
+      // Sarlavha bo'lsa — yonida to'liq manzil ("Uy | Navoiy ko'chasi 12")
+      setDetail(a.title ? [a.address, a.city].filter(Boolean).join(', ') : (a.city || ''));
       setPlaceState({ kind: 'address', id: a.id });
       setRadiusKm((r) => (r > 100 ? DEFAULT_RADIUS_KM : r));
     } else if (p.kind === 'region') {
       setCoords({ lat: p.region.lat, lng: p.region.lng });
       setLabel(p.region.name);
+      setDetail(`${p.region.radiusKm} km atrofi`);
       setPlaceState({ kind: 'region', id: p.region.id });
       setRadiusKm(p.region.radiusKm);
     } else {
       setCoords(UZ_CENTER);
       setLabel('Butun O‘zbekiston');
+      setDetail('barcha hududlar');
       setPlaceState({ kind: 'all' });
       setRadiusKm(ALL_RADIUS_KM);
     }
@@ -142,8 +150,8 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => () => watcher.current?.remove(), []);
 
   const value = useMemo(
-    () => ({ coords, label, status, isFallback, radiusKm, setRadiusKm, refresh: start, place, setPlace }),
-    [coords, label, status, isFallback, radiusKm, start, place, setPlace],
+    () => ({ coords, label, detail, status, isFallback, radiusKm, setRadiusKm, refresh: start, place, setPlace }),
+    [coords, label, detail, status, isFallback, radiusKm, start, place, setPlace],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

@@ -43,7 +43,7 @@ export function LokmaSwitch() {
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', gap: spacing[2], paddingHorizontal: layout.screenPadding, paddingBottom: spacing[3] },
+  row: { flexDirection: 'row', gap: spacing[2], paddingHorizontal: layout.screenPadding, paddingTop: spacing[4], paddingBottom: spacing[1] },
   tile: {
     flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 6,
     borderRadius: 18, borderWidth: 1, paddingVertical: 8, paddingLeft: 6, paddingRight: 8, minHeight: 64,

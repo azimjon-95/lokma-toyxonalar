@@ -8,6 +8,10 @@ import { useFonts, Onest_400Regular, Onest_500Medium, Onest_600SemiBold, Onest_7
 import { colors } from '../src/theme';
 import { LocationProvider } from '../src/store/location';
 import { LokmaProvider } from '../src/lib/lokma';
+import { applyMobileWebFeel } from '../src/lib/webMobile';
+
+// Vebda mobil ilova hissi (matn nusxalanmaydi, zoom/rezina yo'q) — modul yuklanganda bir marta
+applyMobileWebFeel();
 import { FavoritesProvider } from '../src/store/favorites';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});

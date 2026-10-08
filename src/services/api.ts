@@ -11,44 +11,25 @@ import { mockApi } from './mockApi';
  * ═══ TEST REJIMI (vaqtinchalik) ═══
  * Server bilan aloqa bo'lmasa (tarmoq xatosi, vaqt tugashi, 5xx) — ro'yxat,
  * to'yxona sahifasi, kalendar va narx hisobi ilova ichidagi test (mock)
- * ma'lumotlari bilan ko'rsatiladi, sahifa bo'sh "xato" bo'lib qolmaydi.
+ * ma'lumotlari bilan JIMGINA ko'rsatiladi (ogohlantirish belgisi yo'q).
  * BRON YARATISH hech qachon soxta bo'lmaydi — faqat haqiqiy server.
  * O'chirish: EXPO_PUBLIC_MOCK_FALLBACK=false
  */
 const MOCK_FALLBACK = (process.env.EXPO_PUBLIC_MOCK_FALLBACK ?? 'true') !== 'false';
-let mockActive = USE_MOCK;
-const listeners = new Set<(v: boolean) => void>();
-function setMockActive(v: boolean) {
-  if (mockActive === v) return;
-  mockActive = v;
-  listeners.forEach((l) => l(v));
-}
-export const mockMode = {
-  get: () => mockActive,
-  subscribe: (l: (v: boolean) => void) => { listeners.add(l); return () => { listeners.delete(l); }; },
-};
-
 async function withFallback<T>(real: () => Promise<T>, mock: () => Promise<T>, isEmpty?: (r: T) => boolean): Promise<T> {
   if (USE_MOCK) return mock();
   if (!MOCK_FALLBACK) return real();
   try {
     const r = await real();
     // Server javob berdi, lekin hali ma'lumot yo'q — test uchun mock ko'rsatamiz
-    if (isEmpty?.(r)) {
-      setMockActive(true);
-      return mock();
-    }
-    setMockActive(false);
+    if (isEmpty?.(r)) return mock();
     return r;
   } catch (e) {
     /*
      * Har qanday xatoda (tarmoq, 5xx, 4xx: masalan to'yxona serverda yo'q yoki
      * eski server katta radiusni rad etdi) — test ma'lumotlari. Bron bunga kirmaydi.
      */
-    if (e instanceof ApiError) {
-      setMockActive(true);
-      return mock();
-    }
+    if (e instanceof ApiError) return mock();
     throw e;
   }
 }
