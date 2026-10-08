@@ -16,6 +16,7 @@ import { useDebounced } from '../../src/hooks/useDebounced';
 import { useLocation } from '../../src/store/location';
 import { LocationSheet } from '../../src/components/home/LocationSheet';
 import { LokmaSwitch } from '../../src/components/home/LokmaSwitch';
+import { MockBanner } from '../../src/components/home/MockBanner';
 import { addDays, rangeLabel, startOfToday } from '../../src/lib/dates';
 import type { QuickFilter, VenueListItem } from '../../src/types';
 
@@ -90,7 +91,7 @@ export default function HomeScreen() {
         {/* Bosilsa — hudud tanlash: Lokma manzillari, GPS, boshqa hudud, butun O'zbekiston */}
         <Pressable onPress={() => setPlaceOpen(true)} accessibilityRole="button" accessibilityLabel="Hududni tanlash" style={{ flex: 1 }}>
           <View style={styles.locLabelRow}>
-            <View style={[styles.locDot, { backgroundColor: loc.status === 'ready' ? colors.success : loc.status === 'locating' ? '#F0A35E' : colors.textTertiary }]} />
+            <View style={[styles.locDot, { backgroundColor: loc.status === 'ready' ? colors.success : loc.status === 'locating' ? colors.gold : colors.textTertiary }]} />
             <Text style={styles.locLabel}>
               {loc.place.kind === 'address' ? 'Mening manzilim'
                 : loc.place.kind === 'region' ? 'Tanlangan hudud'
@@ -108,6 +109,7 @@ export default function HomeScreen() {
 
       {/* Lokma Go / Lokma Market'ga qaytish */}
       <LokmaSwitch />
+      <MockBanner />
 
       <View style={styles.searchRow}>
         <View style={styles.searchBox}>
@@ -194,10 +196,11 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.white },
-  header: { flexDirection: 'row', alignItems: 'center', gap: spacing[3], paddingHorizontal: layout.screenPadding, paddingTop: spacing[2], paddingBottom: spacing[3] },
+  // Lokma Go bosh sahifasi sarlavhasi bilan bir xil bo'shliq (14 / 16 / 10)
+  header: { flexDirection: 'row', alignItems: 'center', gap: spacing[3], paddingHorizontal: 16, paddingTop: 14, paddingBottom: 10 },
   locLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   locDot: { width: 8, height: 8, borderRadius: 4 },
-  locLabel: { ...typography.caption, fontSize: 12, color: colors.textSecondary },
+  locLabel: { ...typography.caption, fontSize: 11, color: colors.textSecondary },
   locRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 },
   locText: { ...typography.h4, fontFamily: fontFamily.bold, fontSize: 17, color: colors.text, flexShrink: 1 },
   searchRow: { flexDirection: 'row', gap: spacing[2], paddingHorizontal: layout.screenPadding, paddingBottom: spacing[3] },

@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { Linking, Platform } from 'react-native';
+import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 
 /*
  * ═══ LOKMA GO BILAN KO'PRIK ═══
@@ -36,6 +37,8 @@ export interface LokmaContext {
   addresses: LokmaAddress[];
   defaultAddressId: string | null;
   lang?: string;
+  /** Lokma'ning pastki tizim bo'shlig'i (px) — pastki menyu Lokma'niki bilan bir xil o'tirishi uchun */
+  insets?: { bottom: number };
 }
 
 const DEFAULT_ORIGINS = [
@@ -77,6 +80,7 @@ function sanitize(raw: unknown): LokmaContext | null {
     addresses,
     defaultAddressId: str(r.defaultAddressId, 64) ?? null,
     lang: str(r.lang, 8),
+    insets: { bottom: Math.min(48, Math.max(0, num((r.insets as Record<string, unknown> | undefined)?.bottom) ?? 0)) },
   };
 }
 
@@ -145,7 +149,21 @@ export function LokmaProvider({ children }: { children: React.ReactNode }) {
     };
   }, [ctx, settled, goToLokma]);
 
-  return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
+  /*
+   * Lokma ichida xavfsiz zonani (notch, Telegram tugmalari, tizim paneli) Lokma
+   * o'zi hisobga oladi. iOS esa iframe ichida ham env(safe-area-*) ni beradi —
+   * natijada tepada IKKI BARAVAR bo'sh joy paydo bo'lardi. Shuning uchun
+   * ichkarida tepa/yon = 0, past = Lokma bergan qiymat (pastki menyu Lokma'niki
+   * kabi tizim paneli ustida, oq fonda o'tiradi).
+   */
+  const embeddedInsets = useMemo(
+    () => ({ top: 0, left: 0, right: 0, bottom: ctx?.insets?.bottom ?? 0 }),
+    [ctx?.insets?.bottom],
+  );
+  const inner = <Ctx.Provider value={value}>{children}</Ctx.Provider>;
+  return embedded
+    ? <SafeAreaInsetsContext.Provider value={embeddedInsets}>{inner}</SafeAreaInsetsContext.Provider>
+    : inner;
 }
 
 export function useLokma() {

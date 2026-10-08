@@ -3,10 +3,16 @@
 
 export const colors = {
   // Brand
-  primary: '#C9420A',          // Urg'u (Bron qilish, selected)
-  primaryDark: '#B83C08',
-  primaryLight: '#FDF0EB',
-  primarySoft: '#FFF5F0',
+  /*
+   * LOKMA TO'YXONALARI rangi — to'q malina/vino (nafis, to'y ruhida).
+   * Lokma Go — to'q sariq, Lokma Market — yashil, To'yxonalar — vino:
+   * uchta bo'lim bir oila, lekin har biri o'z rangida.
+   */
+  primary: '#A61E4D',          // Urg'u (Bron qilish, tanlangan)
+  primaryDark: '#8A1640',
+  primaryLight: '#FCE7EF',
+  primarySoft: '#FDF2F6',
+  gold: '#C9A227',             // Nozik oltin urg'u (reyting, belgi)
 
   // Neutrals
   white: '#FFFFFF',
@@ -17,7 +23,7 @@ export const colors = {
   // Borders
   border: '#EBECEF',
   borderLight: '#F1F2F4',
-  borderFocus: '#C9420A',
+  borderFocus: '#A61E4D',
 
   // Text
   text: '#111318',
@@ -45,9 +51,9 @@ export const colors = {
   closed: '#9CA3AF',
 
   // Map
-  mapButton: '#0E2A5C',
-  mapPin: '#C9420A',
-  mapRadius: 'rgba(201, 66, 10, 0.12)',
+  mapButton: '#3D1A2E',        // to'q olxo'ri — asosiy rang bilan uyg'un
+  mapPin: '#A61E4D',
+  mapRadius: 'rgba(166, 30, 77, 0.12)',
 
   // Overlay
   overlay: 'rgba(17, 19, 24, 0.45)',
