@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -34,15 +34,17 @@ function Tile({ photo, title, sub, tone, icon, onPress }: {
     >
       <Image source={photo} style={StyleSheet.absoluteFill} contentFit="cover" transition={200} />
       <LinearGradient colors={shade} locations={[0, 0.45, 1]} style={StyleSheet.absoluteFill} />
-      <Image source={icon} style={styles.icon} contentFit="contain" accessibilityIgnoresInvertColors />
+      {/* Belgi o'z o'lchamidagi oq (xira shisha) quti ustida */}
+      <View style={styles.iconBox}>
+        <Image source={icon} style={styles.icon} contentFit="contain" accessibilityIgnoresInvertColors />
+      </View>
+      {/* Strelka yuqori o'ngda — nom pastda to'liq kenglikda (Lokma Go tugmalari bilan bir xil) */}
+      <View style={styles.arrow}>
+        <Ionicons name="arrow-forward" size={13} color={colors.text} />
+      </View>
       <View style={styles.bottom}>
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Text style={styles.title} numberOfLines={1}>{title}</Text>
-          <Text style={styles.sub} numberOfLines={1}>{sub}</Text>
-        </View>
-        <View style={styles.arrow}>
-          <Ionicons name="arrow-forward" size={14} color={colors.text} />
-        </View>
+        <Text style={styles.title} numberOfLines={2}>{title}</Text>
+        <Text style={styles.sub} numberOfLines={2}>{sub}</Text>
       </View>
     </Pressable>
   );
@@ -67,15 +69,22 @@ export function LokmaSwitch() {
   );
 }
 
+// Barcha bo'limlarda (Lokma Go, Market, To'yxonalar) tugma o'lchami bir xil: balandlik 102
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', gap: 10, paddingHorizontal: 16 },
   tile: {
-    flex: 1, minWidth: 0, height: 110, borderRadius: 18, overflow: 'hidden',
+    flex: 1, minWidth: 0, height: 102, borderRadius: 18, overflow: 'hidden',
     shadowColor: '#000', shadowOpacity: 0.14, shadowRadius: 10, shadowOffset: { width: 0, height: 5 }, elevation: 4,
   },
-  icon: { position: 'absolute', top: 8, left: 8, width: 46, height: 46 },
-  bottom: { position: 'absolute', left: 12, right: 10, bottom: 10, flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
-  title: { fontFamily: fontFamily.bold, fontSize: 12.5, lineHeight: 15, color: colors.white },
-  sub: { fontFamily: fontFamily.regular, fontSize: 9.5, lineHeight: 12, color: 'rgba(255,255,255,0.92)' },
-  arrow: { width: 24, height: 24, borderRadius: 12, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center' },
+  iconBox: {
+    position: 'absolute', top: 9, left: 11, width: 44, height: 44, borderRadius: 13,
+    backgroundColor: 'rgba(255,255,255,0.94)', alignItems: 'center', justifyContent: 'center',
+    shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 6, shadowOffset: { width: 0, height: 3 },
+    ...(Platform.OS === 'web' ? ({ backdropFilter: 'blur(8px)' } as object) : null),
+  },
+  icon: { width: 34, height: 34 },
+  bottom: { position: 'absolute', left: 11, right: 10, bottom: 10 },
+  title: { fontFamily: fontFamily.bold, fontSize: 14, lineHeight: 16, color: colors.white },
+  sub: { fontFamily: fontFamily.regular, fontSize: 10.5, lineHeight: 13, color: 'rgba(255,255,255,0.92)', marginTop: 1 },
+  arrow: { position: 'absolute', top: 10, right: 10, width: 24, height: 24, borderRadius: 12, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center' },
 });
