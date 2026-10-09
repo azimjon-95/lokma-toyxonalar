@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fontFamily } from '../../theme';
-import { Gallery } from './Gallery';
+import { PhotoViewer } from './PhotoViewer';
 
 /*
  * Suratlar qatori: katta birinchi surat (video bo'lsa — ▶), 3 ta kichik va "+N".
@@ -14,7 +13,6 @@ export function PhotoStrip({ photos, hasVideo, onShare, isFavorite, onFavorite }
   photos: string[]; hasVideo?: boolean; onShare: () => void; isFavorite: boolean; onFavorite: () => void;
 }) {
   const [open, setOpen] = useState<number | null>(null);
-  const insets = useSafeAreaInsets();
   if (!photos.length) return null;
   const small = photos.slice(1, 4);
   const rest = photos.length - 1 - small.length;
@@ -34,21 +32,15 @@ export function PhotoStrip({ photos, hasVideo, onShare, isFavorite, onFavorite }
         </Tile>
       )}
 
-      <Modal visible={open !== null} animationType="fade" onRequestClose={() => setOpen(null)} statusBarTranslucent>
-        <View style={styles.viewer}>
-          {open !== null && (
-            <Gallery
-              photos={photos}
-              initialIndex={open}
-              topInset={insets.top}
-              onBack={() => setOpen(null)}
-              onShare={onShare}
-              isFavorite={isFavorite}
-              onFavorite={onFavorite}
-            />
-          )}
-        </View>
-      </Modal>
+      <PhotoViewer
+        visible={open !== null}
+        photos={photos}
+        initialIndex={open ?? 0}
+        onClose={() => setOpen(null)}
+        onShare={onShare}
+        isFavorite={isFavorite}
+        onFavorite={onFavorite}
+      />
     </View>
   );
 }
@@ -71,5 +63,4 @@ const styles = StyleSheet.create({
   },
   moreShade: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(28,24,24,0.62)', alignItems: 'center', justifyContent: 'center' },
   more: { fontFamily: fontFamily.semiBold, fontSize: 14, color: colors.white },
-  viewer: { flex: 1, backgroundColor: '#000', justifyContent: 'center' },
 });

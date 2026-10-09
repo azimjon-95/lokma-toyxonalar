@@ -163,7 +163,8 @@ export function LokmaProvider({ children }: { children: React.ReactNode }) {
           try { router.navigate(path === '' ? '/' : (path as never)); } catch { /* router tayyor emas */ }
         }
       } else if (d.type === 'lokma-wedding:back') {
-        // Telegram "Назад": sayt ichida bir qadam orqaga (to'yxona → ro'yxat, tab → bosh sahifa)
+        // Avval ochiq oyna (masalan galereya) yopiladi; bo'lmasa — sayt ichida bir qadam orqaga
+        for (let i = backInterceptors.length - 1; i >= 0; i--) if (backInterceptors[i]()) return;
         try { if (router.canGoBack()) router.back(); else router.navigate('/'); } catch { /* router tayyor emas */ }
       } else if (d.type === 'lokma-wedding:rpc-result' && d.id) {
         const p = pending.current.get(d.id);
@@ -262,3 +263,22 @@ export function useLokma() {
 
 /** Lokma'ga qaytish tugmalari ko'rsatiladimi: iframe ichida yoki veb-saytda */
 export const showLokmaSwitch = isWeb;
+
+/*
+ * Telegram "Назад" ni vaqtincha egallash (galereya, oynalar): handler true qaytarsa —
+ * sahifa orqaga ketmaydi. Eng oxirgi ochilgan oyna birinchi yopiladi.
+ */
+const backInterceptors: Array<() => boolean> = [];
+export function useLokmaBackInterceptor(active: boolean, handler: () => boolean) {
+  const ref = useRef(handler);
+  ref.current = handler;
+  useEffect(() => {
+    if (!active) return undefined;
+    const fn = () => ref.current();
+    backInterceptors.push(fn);
+    return () => {
+      const i = backInterceptors.lastIndexOf(fn);
+      if (i >= 0) backInterceptors.splice(i, 1);
+    };
+  }, [active]);
+}
