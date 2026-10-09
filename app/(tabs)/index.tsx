@@ -1,11 +1,11 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
-import { FlatList, type LayoutChangeEvent, type NativeScrollEvent, type NativeSyntheticEvent, RefreshControl, StyleSheet, TextInput, View } from 'react-native';
+import { FlatList, type LayoutChangeEvent, RefreshControl, StyleSheet, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { setStatusBarStyle } from 'expo-status-bar';
 import { colors } from '../../src/theme';
-import { HomeHero, HERO_HEIGHT } from '../../src/components/home/HomeHero';
-import { CategoryRow, type CategoryKey } from '../../src/components/home/CategoryRow';
+import { HomeHero, HERO_HEIGHT, CONTENT_MAX_WIDTH } from '../../src/components/home/HomeHero';
+import { TopFog } from '../../src/components/ui/TopFog';
 import { HomeSearchBar } from '../../src/components/home/HomeSearchBar';
 import { SectionHeader } from '../../src/components/home/SectionHeader';
 import { FeaturedVenueCard } from '../../src/components/home/FeaturedVenueCard';
@@ -18,12 +18,10 @@ import { EmptyState, ErrorState, Loading } from '../../src/components/ui/ScreenS
 import { useVenues } from '../../src/hooks/queries';
 import { useDebounced } from '../../src/hooks/useDebounced';
 import { useLocation } from '../../src/store/location';
-import type { EventTypeCode, VenueListItem } from '../../src/types';
+import type { VenueListItem } from '../../src/types';
 
 const SHEET_OVERLAP = 28;
 const SORT_LABEL = { distance: 'Eng yaqini birinchi', price_asc: 'Arzonidan', price_desc: 'Qimmatidan', rating: 'Eng yaxshi birinchi' } as const;
-/** Kategoriya → tadbir turi (server filtri) */
-const CATEGORY_EVENT: Partial<Record<CategoryKey, EventTypeCode>> = { banquet: 'kechki', ceremony: 'nikoh' };
 
 type Filter = Omit<AdvancedFilter, 'radiusKm'>;
 const DEFAULT_FILTER: Filter = { quick: 'all', sort: 'rating' };
@@ -38,10 +36,8 @@ export default function HomeScreen() {
 
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<Filter>(DEFAULT_FILTER);
-  const [category, setCategory] = useState<CategoryKey | null>(null);
   const [filterOpen, setFilterOpen] = useState(false);
   const [placeOpen, setPlaceOpen] = useState(false);
-  const [pastHero, setPastHero] = useState(false);
   const q = useDebounced(search.trim());
 
   const venues = useVenues({ q, filter: filter.quick, event_type: filter.event_type, sort: filter.sort });
@@ -51,16 +47,8 @@ export default function HomeScreen() {
   const hasFilter = filter.quick !== 'all' || !!filter.event_type || filter.sort !== DEFAULT_FILTER.sort || loc.radiusKm !== 20;
   const placeLabel = loc.place.kind === 'all' ? 'Barcha' : loc.label.split(',')[0];
 
-  // Hero ustida status bar oq, oq qismga o'tganda qora
-  useFocusEffect(useCallback(() => {
-    setStatusBarStyle(pastHero ? 'dark' : 'light');
-    return () => setStatusBarStyle('dark');
-  }, [pastHero]));
-
-  const onScroll = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const past = e.nativeEvent.contentOffset.y > HERO_HEIGHT - SHEET_OVERLAP;
-    setPastHero((p) => (p === past ? p : past));
-  }, []);
+  // Tepada och "tuman" (TopFog) bor — status bar belgilari to'q rangda aniq ko'rinadi
+  useFocusEffect(useCallback(() => { setStatusBarStyle('dark'); }, []));
 
   const scrollTo = (key: 'search' | 'list') =>
     listRef.current?.scrollToOffset({ offset: Math.max(0, anchors.current[key] - insets.top - 12), animated: true });
@@ -70,18 +58,8 @@ export default function HomeScreen() {
 
   const openVenue = useCallback((slug: string) => router.push({ pathname: '/venue/[slug]', params: { slug } }), [router]);
 
-  const onCategory = (k: CategoryKey) => {
-    if (k === 'favorites') { router.push('/favorites'); return; }
-    // Qayta bosilsa — filtr o'chadi ("To'yxonalar" — hammasi)
-    const next: CategoryKey | null = k === 'all' ? 'all' : category === k ? null : k;
-    setCategory(next);
-    setFilter((f) => ({ ...f, event_type: next ? CATEGORY_EVENT[next] : undefined }));
-    scrollTo('list');
-  };
-
   const resetAll = () => {
     setSearch('');
-    setCategory(null);
     setFilter(DEFAULT_FILTER);
   };
 
@@ -92,10 +70,11 @@ export default function HomeScreen() {
         hasFilter={hasFilter}
         onSearch={() => { scrollTo('search'); setTimeout(() => searchRef.current?.focus(), 350); }}
         onFilter={() => setFilterOpen(true)}
-        onExplore={() => scrollTo('list')}
       />
       <View style={styles.sheet}>
-        <CategoryRow active={category} onPress={onCategory} />
+        <View style={styles.inner}>
+        {/* Lokma bo'limlari — varaqning eng tepasida */}
+        <LokmaSwitch />
 
         <View style={styles.gapM} onLayout={anchor('search')}>
           <HomeSearchBar ref={searchRef} value={search} onChange={setSearch} placeLabel={placeLabel} onPlacePress={() => setPlaceOpen(true)} />
@@ -119,10 +98,6 @@ export default function HomeScreen() {
           </>
         )}
 
-        <View style={styles.gapS}>
-          <LokmaSwitch />
-        </View>
-
         <View style={[styles.gapL, { marginBottom: 12 }]} onLayout={anchor('list')}>
           <SectionHeader
             title={venues.data ? `${venues.data.length} ta to‘yxona` : 'To‘yxonalar'}
@@ -130,6 +105,7 @@ export default function HomeScreen() {
             actionIcon="options-outline"
             onAction={() => setFilterOpen(true)}
           />
+        </View>
         </View>
       </View>
     </View>
@@ -154,7 +130,14 @@ export default function HomeScreen() {
     />
   );
 
-  const renderItem = useCallback(({ item }: { item: VenueListItem }) => <VenueRow venue={item} onPress={() => openVenue(item.slug)} />, [openVenue]);
+  const renderItem = useCallback(
+    ({ item }: { item: VenueListItem }) => (
+      <View style={styles.inner}>
+        <VenueRow venue={item} onPress={() => openVenue(item.slug)} />
+      </View>
+    ),
+    [openVenue],
+  );
   const data = useMemo(() => venues.data ?? [], [venues.data]);
 
   return (
@@ -167,8 +150,6 @@ export default function HomeScreen() {
         ListHeaderComponent={header}
         ListEmptyComponent={empty}
         contentContainerStyle={{ paddingBottom: 24 }}
-        onScroll={onScroll}
-        scrollEventThrottle={32}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
         showsVerticalScrollIndicator={false}
@@ -176,13 +157,13 @@ export default function HomeScreen() {
           <RefreshControl
             refreshing={venues.isRefetching}
             onRefresh={() => { venues.refetch(); popular.refetch(); loc.refresh(); }}
-            tintColor={colors.white}
+            tintColor={colors.goldMid}
             progressViewOffset={insets.top}
           />
         }
       />
-      {/* Hero'dan o'tgach status bar ostida oq qoplama (matn soat ostida ko'rinmasin) */}
-      {pastHero && insets.top > 0 && <View style={[styles.statusCover, { height: insets.top }]} pointerEvents="none" />}
+      {/* Status bar va Telegram tugmalari ostida doimiy yumshoq tuman (hero ham, ro'yxat ham ostidan o'tadi) */}
+      <TopFog height={insets.top} />
 
       <LocationSheet visible={placeOpen} onClose={() => setPlaceOpen(false)} />
       <FilterSheet
@@ -191,7 +172,6 @@ export default function HomeScreen() {
         onClose={() => setFilterOpen(false)}
         onApply={(v) => {
           setFilter({ quick: v.quick, event_type: v.event_type, sort: v.sort });
-          setCategory(v.event_type === 'kechki' ? 'banquet' : v.event_type === 'nikoh' ? 'ceremony' : null);
           loc.setRadiusKm(v.radiusKm);
           setFilterOpen(false);
         }}
@@ -209,5 +189,5 @@ const styles = StyleSheet.create({
   gapS: { marginTop: 12 },
   gapM: { marginTop: 14 },
   gapL: { marginTop: 22 },
-  statusCover: { position: 'absolute', top: 0, left: 0, right: 0, backgroundColor: colors.white },
+  inner: { width: '100%', maxWidth: CONTENT_MAX_WIDTH, alignSelf: 'center' },
 });

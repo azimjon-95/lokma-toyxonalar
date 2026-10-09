@@ -14,6 +14,7 @@ import { VendorSlider } from '../../src/components/venue/VendorSlider';
 import { QuoteSummary } from '../../src/components/venue/QuoteSummary';
 import { BookingSheet } from '../../src/components/venue/BookingSheet';
 import { Button } from '../../src/components/ui/Button';
+import { TopFog } from '../../src/components/ui/TopFog';
 import { ErrorState, Loading } from '../../src/components/ui/ScreenState';
 import { formatKm, formatSum } from '../../src/lib/format';
 import { SESSION_LABEL, isWeekend, parseISODate, startOfToday, toISODate, toMonthKey, formatDayLong } from '../../src/lib/dates';
@@ -216,6 +217,8 @@ export default function VenueScreen() {
           )}
         </View>
       </ScrollView>
+      {/* Galereya status bar ortiga chiqadi — tizim belgilari tuman ostida o'qiladi */}
+      <TopFog height={insets.top} />
 
       <View style={[styles.bar, { paddingBottom: insets.bottom + 12 }]}>
         <View style={{ flex: 1 }}>

@@ -42,8 +42,13 @@ export interface LokmaContext {
   addresses: LokmaAddress[];
   defaultAddressId: string | null;
   lang?: string;
-  /** Lokma'ning pastki tizim bo'shlig'i (px) — pastki menyu Lokma'niki bilan bir xil o'tirishi uchun */
-  insets?: { bottom: number };
+  /**
+   * Lokma'ning tizim bo'shliqlari (px).
+   *   bottom — pastki menyu Lokma'niki bilan bir xil o'tirishi uchun;
+   *   top    — iframe ekran TEPASIDAN boshlanganda (status bar + Telegram tugmalari
+   *            balandligi). Berilmasa 0: Lokma o'zi iframe ustida joy qoldiradi (eski usul).
+   */
+  insets?: { top?: number; bottom: number };
 }
 
 const DEFAULT_ORIGINS = [
@@ -88,7 +93,10 @@ function sanitize(raw: unknown): LokmaContext | null {
     addresses,
     defaultAddressId: str(r.defaultAddressId, 64) ?? null,
     lang: str(r.lang, 8),
-    insets: { bottom: Math.min(48, Math.max(0, num((r.insets as Record<string, unknown> | undefined)?.bottom) ?? 0)) },
+    insets: {
+      top: Math.min(200, Math.max(0, num((r.insets as Record<string, unknown> | undefined)?.top) ?? 0)),
+      bottom: Math.min(48, Math.max(0, num((r.insets as Record<string, unknown> | undefined)?.bottom) ?? 0)),
+    },
   };
 }
 
@@ -156,8 +164,10 @@ export function LokmaProvider({ children }: { children: React.ReactNode }) {
       }
     };
     window.addEventListener('message', onMsg);
-    // Tayyorlik xabari — ma'lumotsiz, shuning uchun '*' xavfsiz
-    window.parent.postMessage({ type: 'lokma-wedding:ready' }, '*');
+    // Tayyorlik xabari — ma'lumotsiz, shuning uchun '*' xavfsiz.
+    // caps: 'edge-to-edge' — sayt tepadagi bo'shliqni (insets.top) o'zi hisobga oladi,
+    // Lokma iframe'ni ekran tepasidan boshlashi mumkin (rasm status bar ortiga chiqadi).
+    window.parent.postMessage({ type: 'lokma-wedding:ready', caps: ['edge-to-edge'] }, '*');
     const t = setTimeout(() => setSettled(true), 2500);
     return () => { window.removeEventListener('message', onMsg); clearTimeout(t); };
   }, []);
@@ -200,15 +210,16 @@ export function LokmaProvider({ children }: { children: React.ReactNode }) {
   }, [ctx, settled, visible, rpc, goToLokma]);
 
   /*
-   * Lokma ichida xavfsiz zonani (notch, Telegram tugmalari, tizim paneli) Lokma
-   * o'zi hisobga oladi. iOS esa iframe ichida ham env(safe-area-*) ni beradi —
-   * natijada tepada IKKI BARAVAR bo'sh joy paydo bo'lardi. Shuning uchun
-   * ichkarida tepa/yon = 0, past = Lokma bergan qiymat (pastki menyu Lokma'niki
-   * kabi tizim paneli ustida, oq fonda o'tiradi).
+   * Lokma ichida xavfsiz zona Lokma'dan keladi (iOS iframe ichida ham
+   * env(safe-area-*) beradi — uni ishlatsak bo'shliq IKKI BARAVAR bo'lardi).
+   *   top    — Lokma iframe'ni ekran tepasidan boshlasa: status bar + Telegram
+   *            tugmalari balandligi (hero rasmi ularning ORTIGA chiqadi);
+   *            eski Lokma'da 0 (bo'shliqni Lokma o'zi qoldiradi);
+   *   bottom — pastki menyu Lokma'niki kabi tizim paneli ustida turadi.
    */
   const embeddedInsets = useMemo(
-    () => ({ top: 0, left: 0, right: 0, bottom: ctx?.insets?.bottom ?? 0 }),
-    [ctx?.insets?.bottom],
+    () => ({ top: ctx?.insets?.top ?? 0, left: 0, right: 0, bottom: ctx?.insets?.bottom ?? 0 }),
+    [ctx?.insets?.top, ctx?.insets?.bottom],
   );
   const inner = <Ctx.Provider value={value}>{children}</Ctx.Provider>;
   return embedded
