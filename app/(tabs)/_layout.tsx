@@ -1,4 +1,4 @@
-import { Platform, View, type ColorValue } from 'react-native';
+import { Platform, Text, View, type ColorValue } from 'react-native';
 import { Image } from 'expo-image';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -29,6 +29,18 @@ function ProfileIcon({ color, focused, photo }: { color: ColorValue; focused: bo
   );
 }
 
+/* Yozuv + faol bo'limda ostida vino rangli chiziq */
+function TabLabel({ focused, color, children }: { focused: boolean; color: ColorValue; children: string }) {
+  return (
+    <View style={{ alignItems: 'center' }}>
+      <Text numberOfLines={1} style={{ fontFamily: focused ? fontFamily.semiBold : fontFamily.medium, fontSize: 10.5, lineHeight: 13, marginTop: 1, color }}>
+        {children}
+      </Text>
+      <View style={{ marginTop: 4, height: 2.5, width: 50, borderRadius: 2, backgroundColor: focused ? colors.primary : 'transparent' }} />
+    </View>
+  );
+}
+
 export default function TabsLayout() {
   const insets = useSafeAreaInsets();
   const lokma = useLokma();
@@ -40,10 +52,14 @@ export default function TabsLayout() {
         tabBarInactiveTintColor: colors.textTertiary,
         tabBarStyle: {
           backgroundColor: colors.white,
-          borderTopColor: colors.border,
-          // Lokma Go BottomNav: 10px yuqori/past, 22px ikonka, 10px yozuv => 56px + pastki bo'shliq
-          ...(isWeb ? { height: 56 + insets.bottom, paddingTop: 10, paddingBottom: 10 + insets.bottom } : {}),
+          borderTopWidth: 0,
+          borderTopLeftRadius: 26,
+          borderTopRightRadius: 26,
+          shadowColor: '#3A1A24', shadowOpacity: 0.08, shadowRadius: 16, shadowOffset: { width: 0, height: -4 }, elevation: 12,
+          // Ikonka + yozuv + faol chiziq => 64px + pastki bo'shliq
+          ...(isWeb ? { height: 58 + insets.bottom, paddingTop: 7, paddingBottom: 5 + insets.bottom } : { height: 58 + insets.bottom, paddingTop: 7 }),
         },
+        tabBarLabel: ({ focused, color, children }) => <TabLabel focused={focused} color={color}>{children}</TabLabel>,
         ...(isWeb ? { tabBarItemStyle: { justifyContent: 'center' as const, paddingVertical: 0 } } : {}),
         tabBarLabelStyle: {
           fontFamily: isWeb ? fontFamily.medium : fontFamily.semiBold,

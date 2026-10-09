@@ -1,254 +1,213 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { FlatList, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import { colors, layout, radius, spacing, typography, fontFamily } from '../../src/theme';
-import { VenueCard } from '../../src/components/home/VenueCard';
-import { FreeSoonCarousel } from '../../src/components/home/FreeSoonCarousel';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
+import { FlatList, type LayoutChangeEvent, type NativeScrollEvent, type NativeSyntheticEvent, RefreshControl, StyleSheet, TextInput, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { setStatusBarStyle } from 'expo-status-bar';
+import { colors } from '../../src/theme';
+import { HomeHero, HERO_HEIGHT } from '../../src/components/home/HomeHero';
+import { CategoryRow, type CategoryKey } from '../../src/components/home/CategoryRow';
+import { HomeSearchBar } from '../../src/components/home/HomeSearchBar';
+import { SectionHeader } from '../../src/components/home/SectionHeader';
+import { FeaturedVenueCard } from '../../src/components/home/FeaturedVenueCard';
+import { VenueRow } from '../../src/components/home/VenueRow';
+import { LokmaSwitch } from '../../src/components/home/LokmaSwitch';
 import { FilterSheet, type AdvancedFilter } from '../../src/components/home/FilterSheet';
-import { Chip } from '../../src/components/ui/Chip';
+import { LocationSheet } from '../../src/components/home/LocationSheet';
 import { Button } from '../../src/components/ui/Button';
 import { EmptyState, ErrorState, Loading } from '../../src/components/ui/ScreenState';
-import { useFreeSoon, useVenues } from '../../src/hooks/queries';
+import { useVenues } from '../../src/hooks/queries';
 import { useDebounced } from '../../src/hooks/useDebounced';
 import { useLocation } from '../../src/store/location';
-import { LocationSheet } from '../../src/components/home/LocationSheet';
-import { LokmaSwitch } from '../../src/components/home/LokmaSwitch';
-import { addDays, rangeLabel, startOfToday } from '../../src/lib/dates';
-import type { QuickFilter, VenueListItem } from '../../src/types';
+import type { EventTypeCode, VenueListItem } from '../../src/types';
 
-const CHIPS: { key: QuickFilter; label: string }[] = [
-  { key: 'all', label: 'Hammasi' },
-  { key: 'free_today', label: 'Bugun bo‘sh' },
-  { key: 'cheap', label: '150 ming gacha' },
-  { key: 'big', label: '500+ mehmon' },
-  { key: 'parking', label: 'Parking' },
-];
+const SHEET_OVERLAP = 28;
+const SORT_LABEL = { distance: 'Eng yaqini birinchi', price_asc: 'Arzonidan', price_desc: 'Qimmatidan', rating: 'Eng yaxshi birinchi' } as const;
+/** Kategoriya → tadbir turi (server filtri) */
+const CATEGORY_EVENT: Partial<Record<CategoryKey, EventTypeCode>> = { banquet: 'kechki', ceremony: 'nikoh' };
 
-const SORT_LABEL = { distance: 'Eng yaqini birinchi', price_asc: 'Arzonidan', price_desc: 'Qimmatidan', rating: 'Reyting bo‘yicha' } as const;
+type Filter = Omit<AdvancedFilter, 'radiusKm'>;
+const DEFAULT_FILTER: Filter = { quick: 'all', sort: 'rating' };
 
 export default function HomeScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const loc = useLocation();
+  const listRef = useRef<FlatList<VenueListItem>>(null);
+  const searchRef = useRef<TextInput>(null);
+  const anchors = useRef({ search: 0, list: 0 });
+
   const [search, setSearch] = useState('');
-  const [chip, setChip] = useState<QuickFilter>('all');
-  const [adv, setAdv] = useState<Omit<AdvancedFilter, 'radiusKm'>>({ sort: 'distance' });
+  const [filter, setFilter] = useState<Filter>(DEFAULT_FILTER);
+  const [category, setCategory] = useState<CategoryKey | null>(null);
   const [filterOpen, setFilterOpen] = useState(false);
   const [placeOpen, setPlaceOpen] = useState(false);
-  // Qidiruv sarlavhada ikonka; bosilganda sarlavha qidiruv maydoniga aylanadi
-  const [searchOpen, setSearchOpen] = useState(false);
-  const searchRef = useRef<TextInput>(null);
-  useEffect(() => { if (searchOpen) setTimeout(() => searchRef.current?.focus(), 50); }, [searchOpen]);
-  // Hudud matni: butun O'zbekiston tanlansa km ko'rsatilmaydi
-  const areaText = loc.place.kind === 'all' ? 'butun O‘zbekiston bo‘yicha' : `${loc.radiusKm} km atrofingizda`;
+  const [pastHero, setPastHero] = useState(false);
   const q = useDebounced(search.trim());
 
-  const venues = useVenues({ q, filter: chip, event_type: adv.event_type, sort: adv.sort });
-  const freeSoon = useFreeSoon(3);
-  const today = startOfToday();
-  const hasAdvanced = !!adv.event_type || adv.sort !== 'distance' || loc.radiusKm !== 20;
+  const venues = useVenues({ q, filter: filter.quick, event_type: filter.event_type, sort: filter.sort });
+  // "Mashhur": shu hududdagi eng yuqori reytingli to'yxona (filtrlardan mustaqil)
+  const popular = useVenues({ sort: 'rating' });
+  const featured = popular.data?.[0];
+  const hasFilter = filter.quick !== 'all' || !!filter.event_type || filter.sort !== DEFAULT_FILTER.sort || loc.radiusKm !== 20;
+  const placeLabel = loc.place.kind === 'all' ? 'Barcha' : loc.label.split(',')[0];
+
+  // Hero ustida status bar oq, oq qismga o'tganda qora
+  useFocusEffect(useCallback(() => {
+    setStatusBarStyle(pastHero ? 'dark' : 'light');
+    return () => setStatusBarStyle('dark');
+  }, [pastHero]));
+
+  const onScroll = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const past = e.nativeEvent.contentOffset.y > HERO_HEIGHT - SHEET_OVERLAP;
+    setPastHero((p) => (p === past ? p : past));
+  }, []);
+
+  const scrollTo = (key: 'search' | 'list') =>
+    listRef.current?.scrollToOffset({ offset: Math.max(0, anchors.current[key] - insets.top - 12), animated: true });
+  const anchor = (key: 'search' | 'list') => (e: LayoutChangeEvent) => {
+    anchors.current[key] = e.nativeEvent.layout.y + HERO_HEIGHT + insets.top - SHEET_OVERLAP;
+  };
 
   const openVenue = useCallback((slug: string) => router.push({ pathname: '/venue/[slug]', params: { slug } }), [router]);
-  const renderItem = useCallback(
-    ({ item }: { item: VenueListItem }) => (
-      <View style={{ paddingHorizontal: layout.screenPadding }}>
-        <VenueCard venue={item} onPress={() => openVenue(item.slug)} />
-      </View>
-    ),
-    [openVenue],
-  );
 
-  const header = useMemo(
-    () => (
-      <View>
-        {(freeSoon.data?.length ?? 0) > 0 && (
-          <View style={styles.section}>
-            <View style={styles.sectionHead}>
-              <Text style={styles.h1}>3 kun ichida bo‘sh</Text>
-              <Text style={styles.sub}>
-                {rangeLabel(today, addDays(today, 2))} · {areaText}
-              </Text>
+  const onCategory = (k: CategoryKey) => {
+    if (k === 'favorites') { router.push('/favorites'); return; }
+    // Qayta bosilsa — filtr o'chadi ("To'yxonalar" — hammasi)
+    const next: CategoryKey | null = k === 'all' ? 'all' : category === k ? null : k;
+    setCategory(next);
+    setFilter((f) => ({ ...f, event_type: next ? CATEGORY_EVENT[next] : undefined }));
+    scrollTo('list');
+  };
+
+  const resetAll = () => {
+    setSearch('');
+    setCategory(null);
+    setFilter(DEFAULT_FILTER);
+  };
+
+  const header = (
+    <View>
+      <HomeHero
+        topInset={insets.top}
+        hasFilter={hasFilter}
+        onSearch={() => { scrollTo('search'); setTimeout(() => searchRef.current?.focus(), 350); }}
+        onFilter={() => setFilterOpen(true)}
+        onExplore={() => scrollTo('list')}
+      />
+      <View style={styles.sheet}>
+        <CategoryRow active={category} onPress={onCategory} />
+
+        <View style={styles.gapM} onLayout={anchor('search')}>
+          <HomeSearchBar ref={searchRef} value={search} onChange={setSearch} placeLabel={placeLabel} onPlacePress={() => setPlaceOpen(true)} />
+        </View>
+
+        {!!featured && !q && (
+          <>
+            <View style={styles.gapL}>
+              <SectionHeader
+                title="Mashhur to‘yxonalar"
+                serif
+                action="Barchasi"
+                actionLink
+                actionIcon="arrow-forward"
+                onAction={() => { setFilter((f) => ({ ...f, sort: 'rating' })); scrollTo('list'); }}
+              />
             </View>
-            <FreeSoonCarousel items={freeSoon.data!} onPress={openVenue} />
-          </View>
+            <View style={styles.gapS}>
+              <FeaturedVenueCard venue={featured} onPress={() => openVenue(featured.slug)} />
+            </View>
+          </>
         )}
-        {/* Lokma Go / Lokma Market'ga qaytish — bo'sh to'yxonalar slayderi ostida */}
-        <LokmaSwitch />
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
-          {CHIPS.map((c) => (
-            <Chip key={c.key} label={c.label} selected={chip === c.key} onPress={() => setChip(c.key)} />
-          ))}
-        </ScrollView>
-        <View style={styles.listHead}>
-          <Text style={styles.h2}>{venues.data ? `${venues.data.length} ta to‘yxona` : 'To‘yxonalar'}</Text>
-          <Text style={styles.sub}>{SORT_LABEL[adv.sort]}</Text>
+
+        <View style={styles.gapS}>
+          <LokmaSwitch />
+        </View>
+
+        <View style={[styles.gapL, { marginBottom: 12 }]} onLayout={anchor('list')}>
+          <SectionHeader
+            title={venues.data ? `${venues.data.length} ta to‘yxona` : 'To‘yxonalar'}
+            action={SORT_LABEL[filter.sort]}
+            actionIcon="options-outline"
+            onAction={() => setFilterOpen(true)}
+          />
         </View>
       </View>
-    ),
-    [freeSoon.data, chip, venues.data, adv.sort, areaText, openVenue, today],
+    </View>
   );
+
+  const empty = venues.isLoading ? (
+    <Loading />
+  ) : venues.isError ? (
+    <ErrorState message={(venues.error as Error).message} onRetry={() => venues.refetch()} />
+  ) : (
+    <EmptyState
+      title="Bu filtr bo‘yicha to‘yxona topilmadi"
+      subtitle={loc.place.kind === 'all' ? undefined : `${loc.radiusKm} km radiusda`}
+      action={
+        <Button
+          title={loc.radiusKm < 50 && loc.place.kind !== 'all' ? 'Radiusni 50 km qilish' : 'Filtrni tozalash'}
+          variant="outline"
+          size="sm"
+          onPress={() => (loc.radiusKm < 50 && loc.place.kind !== 'all' ? loc.setRadiusKm(50) : resetAll())}
+        />
+      }
+    />
+  );
+
+  const renderItem = useCallback(({ item }: { item: VenueListItem }) => <VenueRow venue={item} onPress={() => openVenue(item.slug)} />, [openVenue]);
+  const data = useMemo(() => venues.data ?? [], [venues.data]);
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      {/*
-        Sarlavha (Lokma Go uslubida): chapda manzil — "Uy | to'liq manzil",
-        o'ngda ixcham tugmalar: qidiruv, filtr, xarita. Saralanganlar — pastki menyuda.
-      */}
-      {searchOpen ? (
-        <View style={styles.header}>
-          <View style={styles.searchBox}>
-            <Ionicons name="search" size={18} color={colors.textSecondary} />
-            <TextInput
-              ref={searchRef}
-              style={styles.searchInput}
-              placeholder="To‘yxona nomi yoki tuman"
-              placeholderTextColor={colors.textTertiary}
-              value={search}
-              onChangeText={setSearch}
-              returnKeyType="search"
-              accessibilityLabel="To‘yxona qidirish"
-            />
-            {!!search && (
-              <Pressable onPress={() => setSearch('')} hitSlop={8} accessibilityLabel="Tozalash">
-                <Ionicons name="close-circle" size={18} color={colors.textTertiary} />
-              </Pressable>
-            )}
-          </View>
-          <Pressable onPress={() => { setSearch(''); setSearchOpen(false); }} hitSlop={6} accessibilityRole="button">
-            <Text style={styles.cancel}>Bekor</Text>
-          </Pressable>
-        </View>
-      ) : (
-        <View style={styles.header}>
-          <Pressable onPress={() => setPlaceOpen(true)} accessibilityRole="button" accessibilityLabel="Hududni tanlash" style={styles.locBlock}>
-            <View style={styles.locLabelRow}>
-              <View style={[styles.locDot, { backgroundColor: loc.status === 'ready' ? colors.success : loc.status === 'locating' ? colors.gold : colors.textTertiary }]} />
-              <Text style={styles.locLabel} numberOfLines={1}>
-                {loc.place.kind === 'address' ? 'Mening manzilim'
-                  : loc.place.kind === 'region' ? 'Tanlangan hudud'
-                    : loc.place.kind === 'all' ? 'Barcha to‘yxonalar'
-                      : loc.status === 'locating' ? 'Joylashuv aniqlanmoqda…' : loc.status === 'ready' ? 'Joylashuv' : 'Joylashuv aniqlanmadi'}
-              </Text>
-            </View>
-            <View style={styles.locRow}>
-              <Text style={styles.locText} numberOfLines={1}>
-                {loc.label}
-                {!!loc.detail && <Text style={styles.locDetail}>{'  |  '}{loc.detail}</Text>}
-              </Text>
-              <Ionicons name="chevron-down" size={15} color={colors.textSecondary} />
-            </View>
-          </Pressable>
-          <View style={styles.actions}>
-            <Pressable onPress={() => setSearchOpen(true)} style={({ pressed }) => [styles.iconBtn, pressed && styles.iconPressed]} accessibilityRole="button" accessibilityLabel="Qidirish">
-              <Ionicons name="search" size={19} color={colors.text} />
-              {!!search && <View style={styles.badgeDot} />}
-            </Pressable>
-            <Pressable onPress={() => setFilterOpen(true)} style={({ pressed }) => [styles.iconBtn, pressed && styles.iconPressed]} accessibilityRole="button" accessibilityLabel="Filtr va saralash">
-              <Ionicons name="options-outline" size={19} color={colors.text} />
-              {hasAdvanced && <View style={styles.badgeDot} />}
-            </Pressable>
-          </View>
-        </View>
-      )}
-
-      {venues.isLoading ? (
-        <Loading />
-      ) : venues.isError ? (
-        <ErrorState message={(venues.error as Error).message} onRetry={() => venues.refetch()} />
-      ) : (
-        <FlatList
-          data={venues.data}
-          keyExtractor={(v) => v.id}
-          renderItem={renderItem}
-          ListHeaderComponent={header}
-          contentContainerStyle={{ paddingBottom: spacing[8] }}
-          ListEmptyComponent={
-            <EmptyState
-              title="Bu filtr bo‘yicha to‘yxona topilmadi"
-              subtitle={`${loc.radiusKm} km radiusda`}
-              action={
-                <Button
-                  title={loc.radiusKm < 50 ? 'Radiusni 50 km qilish' : 'Filtrni tozalash'}
-                  variant="outline"
-                  size="sm"
-                  onPress={() => {
-                    if (loc.radiusKm < 50) loc.setRadiusKm(50);
-                    else { setChip('all'); setSearch(''); setAdv({ sort: 'distance' }); }
-                  }}
-                />
-              }
-            />
-          }
-          refreshControl={
-            <RefreshControl
-              refreshing={venues.isRefetching}
-              onRefresh={() => { venues.refetch(); freeSoon.refetch(); }}
-              tintColor={colors.primary}
-            />
-          }
-          style={styles.list}
-        />
-      )}
+    <View style={styles.container}>
+      <FlatList
+        ref={listRef}
+        data={data}
+        keyExtractor={(v) => v.id}
+        renderItem={renderItem}
+        ListHeaderComponent={header}
+        ListEmptyComponent={empty}
+        contentContainerStyle={{ paddingBottom: 24 }}
+        onScroll={onScroll}
+        scrollEventThrottle={32}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={venues.isRefetching}
+            onRefresh={() => { venues.refetch(); popular.refetch(); loc.refresh(); }}
+            tintColor={colors.white}
+            progressViewOffset={insets.top}
+          />
+        }
+      />
+      {/* Hero'dan o'tgach status bar ostida oq qoplama (matn soat ostida ko'rinmasin) */}
+      {pastHero && insets.top > 0 && <View style={[styles.statusCover, { height: insets.top }]} pointerEvents="none" />}
 
       <LocationSheet visible={placeOpen} onClose={() => setPlaceOpen(false)} />
-
       <FilterSheet
         visible={filterOpen}
-        value={{ ...adv, radiusKm: loc.radiusKm }}
+        value={{ ...filter, radiusKm: loc.radiusKm }}
         onClose={() => setFilterOpen(false)}
         onApply={(v) => {
-          setAdv({ event_type: v.event_type, sort: v.sort });
+          setFilter({ quick: v.quick, event_type: v.event_type, sort: v.sort });
+          setCategory(v.event_type === 'kechki' ? 'banquet' : v.event_type === 'nikoh' ? 'ceremony' : null);
           loc.setRadiusKm(v.radiusKm);
           setFilterOpen(false);
         }}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 
-const SOFT = {
-  shadowColor: '#2A0F1C', shadowOpacity: 0.08, shadowRadius: 10, shadowOffset: { width: 0, height: 3 }, elevation: 2,
-} as const;
-
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-    // Vebda yuqoridan pushti nur → iliq fon (mobil ilovada tekis iliq fon)
-    ...(Platform.OS === 'web'
-      ? ({ backgroundImage: 'linear-gradient(180deg, #F9E6EC 0px, #FBEFEA 220px, #FAF4EE 520px)' } as object)
-      : null),
+  container: { flex: 1, backgroundColor: colors.white },
+  sheet: {
+    marginTop: -SHEET_OVERLAP, paddingTop: 12, backgroundColor: colors.white,
+    borderTopLeftRadius: 30, borderTopRightRadius: 30,
   },
-  // Lokma Go bosh sahifasi sarlavhasi bilan bir xil bo'shliq (14 / 16 / 10)
-  header: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingTop: 14, paddingBottom: 10 },
-  locBlock: { flex: 1, minWidth: 0 },
-  locLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  locDot: { width: 7, height: 7, borderRadius: 4 },
-  locLabel: { ...typography.caption, fontSize: 11, color: colors.textSecondary },
-  locRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
-  locText: { ...typography.h3, fontFamily: fontFamily.extraBold, fontSize: 17, color: colors.text, flexShrink: 1 },
-  locDetail: { fontFamily: fontFamily.medium, fontSize: 14, color: colors.textSecondary },
-  actions: { flexDirection: 'row', gap: 8 },
-  iconBtn: {
-    width: 40, height: 40, borderRadius: 14, backgroundColor: colors.white,
-    alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.borderLight, ...SOFT,
-  },
-  iconPressed: { transform: [{ scale: 0.94 }] },
-  badgeDot: { position: 'absolute', top: 8, right: 8, width: 8, height: 8, borderRadius: 4, backgroundColor: colors.primary, borderWidth: 1.5, borderColor: colors.white },
-  searchBox: {
-    flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, height: 44, paddingHorizontal: 14,
-    borderRadius: 14, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.borderLight, ...SOFT,
-  },
-  searchInput: { flex: 1, minWidth: 0, ...typography.body, fontSize: 16, color: colors.text, paddingVertical: 0, outlineStyle: 'none' } as never,
-  cancel: { ...typography.bodySemiBold, color: colors.primary },
-
-  list: { flex: 1 },
-  section: { paddingTop: spacing[2] },
-  sectionHead: { paddingHorizontal: layout.screenPadding, marginBottom: spacing[3] },
-  h1: { ...typography.h2, fontFamily: fontFamily.extraBold, fontSize: 22, color: colors.text },
-  h2: { ...typography.h3, fontFamily: fontFamily.extraBold, color: colors.text },
-  sub: { ...typography.caption, color: colors.textSecondary, marginTop: 2 },
-  chips: { gap: spacing[2], paddingHorizontal: layout.screenPadding, paddingTop: spacing[4], paddingBottom: spacing[2] },
-  listHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: layout.screenPadding, paddingTop: spacing[3], paddingBottom: spacing[4] },
+  gapS: { marginTop: 12 },
+  gapM: { marginTop: 14 },
+  gapL: { marginTop: 22 },
+  statusCover: { position: 'absolute', top: 0, left: 0, right: 0, backgroundColor: colors.white },
 });

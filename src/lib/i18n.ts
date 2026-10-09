@@ -124,6 +124,14 @@ const RU: Record<string, string> = {
   'Sahifa topilmadi': 'Страница не найдена', 'Bosh sahifaga qaytish': 'На главную', 'Joylashuvimga qaytish': 'К моему местоположению',
   "Xaritada ochish ↗": 'Открыть на карте ↗',
   "Hali saralangan to'yxona yo'q": 'Пока нет избранных залов', "Kartadagi ♡ belgisini bosib saqlab qo'ying": 'Нажмите ♡ на карточке, чтобы сохранить',
+  // Bosh sahifa (yangi dizayn)
+  'ORZULARINGIZDAGI': 'ВАША МЕЧТА', "To'yingiz uchun\neng yaxshi joy": 'Лучшее место\nдля вашей свадьбы',
+  "Biz bilan har bir lahza\nunutilmas bo'ladi ✨": 'С нами каждый миг\nстанет незабываемым ✨', "To'yxonalarni ko'rish": 'Смотреть залы',
+  'Katta va kichik zallar': 'Большие и малые залы', 'Banket zallari': 'Банкетные залы',
+  'Bayram va tadbirlar uchun': 'Для праздников и мероприятий', 'Tantanalar': 'Торжества', 'Nikoh, sunnat, korporativ': 'Никох, суннат, корпоратив',
+  'Sevimlilar': 'Избранное', 'Saqlangan joylar': 'Сохранённые места', "To'yxonalar, shahar, tuman...": 'Залы, город, район...',
+  'Barcha': 'Все', 'Barchasi': 'Все', "Mashhur to'yxonalar": 'Популярные залы', 'Top tanlov': 'Топ выбор',
+  'Eng yaxshi birinchi': 'Сначала лучшие', 'dan boshlab': 'от', 'Yaqin kunlarda band': 'Ближайшие дни заняты', 'Tezkor': 'Быстрые',
   // Lokma tugmalari
   'Lokma Go': 'Lokma Go', 'Lokma Market': 'Lokma Market', 'Restoran va taomlar': 'Рестораны и блюда', "Oziq-ovqat do'konlari": 'Продуктовые магазины',
   // Profil

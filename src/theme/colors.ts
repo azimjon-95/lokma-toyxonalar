@@ -13,6 +13,14 @@ export const colors = {
   primaryLight: '#FCE7EF',
   primarySoft: '#FDF2F6',
   gold: '#C9A227',             // Nozik oltin urg'u (reyting, belgi)
+  // Bosh sahifa: shampan-oltin (CTA, "Top tanlov", bo'lim chizig'i)
+  goldLight: '#E6C789',
+  goldMid: '#D1A65E',
+  goldDeep: '#B07F37',
+  goldText: '#A87632',
+  cream: '#FBF5EE',
+  creamDeep: '#F6ECE1',
+  creamBorder: '#F1E5D7',
 
   // Neutrals
   white: '#FFFFFF',

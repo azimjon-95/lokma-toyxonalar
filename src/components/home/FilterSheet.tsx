@@ -2,11 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radius, spacing, typography } from '../../theme';
-import type { EventTypeCode, SortKey } from '../../types';
+import type { EventTypeCode, QuickFilter, SortKey } from '../../types';
 import { Chip } from '../ui/Chip';
 import { Button } from '../ui/Button';
 
 export interface AdvancedFilter {
+  quick: QuickFilter;
   event_type?: EventTypeCode;
   sort: SortKey;
   radiusKm: number;
@@ -25,6 +26,13 @@ const SORTS: { code: SortKey; label: string }[] = [
   { code: 'rating', label: 'Reyting' },
 ];
 const RADII = [10, 20, 50];
+const QUICK: { code: QuickFilter; label: string }[] = [
+  { code: 'all', label: 'Hammasi' },
+  { code: 'free_today', label: 'Bugun bo‘sh' },
+  { code: 'cheap', label: '150 ming gacha' },
+  { code: 'big', label: '500+ mehmon' },
+  { code: 'parking', label: 'Parking' },
+];
 
 interface Props {
   visible: boolean;
@@ -46,6 +54,13 @@ export function FilterSheet({ visible, value, onClose, onApply }: Props) {
       <View style={[styles.sheet, { paddingBottom: insets.bottom + spacing[4] }]}>
         <View style={styles.handle} />
         <Text style={styles.title}>Filtr</Text>
+
+        <Text style={styles.label}>Tezkor</Text>
+        <View style={styles.row}>
+          {QUICK.map((q) => (
+            <Chip key={q.code} label={q.label} selected={draft.quick === q.code} onPress={() => setDraft((d) => ({ ...d, quick: q.code }))} />
+          ))}
+        </View>
 
         <Text style={styles.label}>Tadbir turi</Text>
         <View style={styles.row}>
@@ -78,7 +93,7 @@ export function FilterSheet({ visible, value, onClose, onApply }: Props) {
             title="Tozalash"
             variant="outline"
             style={{ flex: 1 }}
-            onPress={() => setDraft({ event_type: undefined, sort: 'distance', radiusKm: 20 })}
+            onPress={() => setDraft({ quick: 'all', event_type: undefined, sort: 'distance', radiusKm: 20 })}
           />
           <Button title="Ko‘rsatish" style={{ flex: 2 }} onPress={() => onApply(draft)} />
         </View>

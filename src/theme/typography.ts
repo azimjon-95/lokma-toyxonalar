@@ -8,6 +8,9 @@ export const fontFamily = {
   semiBold: 'Onest_600SemiBold',
   bold: 'Onest_700Bold',
   extraBold: 'Onest_800ExtraBold',
+  // Sarlavhalar uchun nafis serif (kirill ham bor — uzc/ru tillari uchun)
+  serif: 'PlayfairDisplay_600SemiBold',
+  serifBold: 'PlayfairDisplay_700Bold',
 } as const;
 
 export const fontSize = {
