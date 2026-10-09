@@ -1,7 +1,7 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
-import { FlatList, type LayoutChangeEvent, RefreshControl, StyleSheet, TextInput, View } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { FlatList, type LayoutChangeEvent, StyleSheet, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useFocusEffect, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { setStatusBarStyle } from 'expo-status-bar';
 import { colors } from '../../src/theme';
 import { HomeHero, HERO_HEIGHT, CONTENT_MAX_WIDTH } from '../../src/components/home/HomeHero';
@@ -18,6 +18,7 @@ import { EmptyState, ErrorState, Loading } from '../../src/components/ui/ScreenS
 import { useVenues } from '../../src/hooks/queries';
 import { useDebounced } from '../../src/hooks/useDebounced';
 import { useLocation } from '../../src/store/location';
+import { useLokma } from '../../src/lib/lokma';
 import type { VenueListItem } from '../../src/types';
 
 const SHEET_OVERLAP = 28;
@@ -30,6 +31,7 @@ export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const loc = useLocation();
+  const { statusTop } = useLokma();
   const listRef = useRef<FlatList<VenueListItem>>(null);
   const searchRef = useRef<TextInput>(null);
   const anchors = useRef({ search: 0, list: 0 });
@@ -56,6 +58,19 @@ export default function HomeScreen() {
     anchors.current[key] = e.nativeEvent.layout.y + HERO_HEIGHT + insets.top - SHEET_OVERLAP;
   };
 
+  // To'yxona sahifasidagi qidiruv/filtr tugmalari shu yerga ?open=search|filter bilan qaytaradi
+  const { open } = useLocalSearchParams<{ open?: string }>();
+  useEffect(() => {
+    if (open !== 'search' && open !== 'filter') return;
+    if (open === 'filter') setFilterOpen(true);
+    else {
+      scrollTo('search');
+      setTimeout(() => searchRef.current?.focus(), 400);
+    }
+    router.setParams({ open: undefined });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
   const openVenue = useCallback((slug: string) => router.push({ pathname: '/venue/[slug]', params: { slug } }), [router]);
 
   const resetAll = () => {
@@ -68,7 +83,6 @@ export default function HomeScreen() {
       <HomeHero
         topInset={insets.top}
         hasFilter={hasFilter}
-        onSearch={() => { scrollTo('search'); setTimeout(() => searchRef.current?.focus(), 350); }}
         onFilter={() => setFilterOpen(true)}
       />
       <View style={styles.sheet}>
@@ -153,17 +167,12 @@ export default function HomeScreen() {
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
         showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={venues.isRefetching}
-            onRefresh={() => { venues.refetch(); popular.refetch(); loc.refresh(); }}
-            tintColor={colors.goldMid}
-            progressViewOffset={insets.top}
-          />
-        }
+        // Pastga tortganda sahifa joyida qotib turadi (hero ostidan oq joy chiqmaydi)
+        bounces={false}
+        overScrollMode="never"
       />
       {/* Status bar va Telegram tugmalari ostida doimiy yumshoq tuman (hero ham, ro'yxat ham ostidan o'tadi) */}
-      <TopFog height={insets.top} />
+      <TopFog height={insets.top} statusHeight={statusTop} />
 
       <LocationSheet visible={placeOpen} onClose={() => setPlaceOpen(false)} />
       <FilterSheet

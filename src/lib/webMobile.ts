@@ -12,6 +12,8 @@ import { Platform } from 'react-native';
  */
 const CSS = `
 html, body { overscroll-behavior: none; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+/* Ichki skroll konteynerlari ham chegarada cho'zilmaydi: pastga tortganda sahifa qotib turadi */
+div { overscroll-behavior: none; }
 * { -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; scrollbar-width: none; }
 *::-webkit-scrollbar { width: 0; height: 0; display: none; }
 input, textarea, [contenteditable="true"] { -webkit-user-select: text; user-select: text; -webkit-touch-callout: default; font-size: 16px; }

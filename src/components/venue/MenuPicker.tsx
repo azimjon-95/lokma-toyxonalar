@@ -72,7 +72,7 @@ const styles = StyleSheet.create({
   gSub: { ...typography.caption, fontSize: 12, color: colors.textSecondary },
   stepper: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   stepBtn: { width: 44, height: 44, borderRadius: 22, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
-  stepBtnDark: { backgroundColor: colors.text, borderColor: colors.text },
+  stepBtnDark: { backgroundColor: colors.primary, borderColor: colors.primary },
   gValue: { ...typography.h4, fontFamily: fontFamily.extraBold, minWidth: 44, textAlign: 'center', color: colors.text },
   per: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#FFF1E8', borderRadius: 16, paddingHorizontal: 14, paddingVertical: 12 },
   perNote: { ...typography.caption, color: '#7A2E06', flex: 1 },

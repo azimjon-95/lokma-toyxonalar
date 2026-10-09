@@ -48,7 +48,7 @@ export interface LokmaContext {
    *   top    — iframe ekran TEPASIDAN boshlanganda (status bar + Telegram tugmalari
    *            balandligi). Berilmasa 0: Lokma o'zi iframe ustida joy qoldiradi (eski usul).
    */
-  insets?: { top?: number; bottom: number };
+  insets?: { top?: number; statusTop?: number; bottom: number };
 }
 
 const DEFAULT_ORIGINS = [
@@ -95,6 +95,7 @@ function sanitize(raw: unknown): LokmaContext | null {
     lang: str(r.lang, 8),
     insets: {
       top: Math.min(200, Math.max(0, num((r.insets as Record<string, unknown> | undefined)?.top) ?? 0)),
+      statusTop: Math.min(120, Math.max(0, num((r.insets as Record<string, unknown> | undefined)?.statusTop) ?? 0)),
       bottom: Math.min(48, Math.max(0, num((r.insets as Record<string, unknown> | undefined)?.bottom) ?? 0)),
     },
   };
@@ -118,6 +119,10 @@ interface LokmaValue extends LokmaContext {
   defaultAddress: LokmaAddress | null;
   /** Lokma Go ('/') yoki Lokma Market ('/market') ga qaytish */
   goToLokma: (to: '/' | '/market') => void;
+  /** Joriy sahifani Lokma'ga bildirish (Telegram "Назад" ichkarida ishlashi uchun) */
+  reportRoute: (pathname: string) => void;
+  /** Status bar balandligi (Telegram tugmalarisiz); Lokma bermasa — umumiy tepa bo'shliq */
+  statusTop: number | null;
 }
 
 const Ctx = createContext<LokmaValue | null>(null);
@@ -155,6 +160,9 @@ export function LokmaProvider({ children }: { children: React.ReactNode }) {
         if (/^\/(venue\/[a-z0-9-]{1,80}|favorites|profile|my-bookings|map)?$/i.test(path)) {
           try { router.navigate(path === '' ? '/' : (path as never)); } catch { /* router tayyor emas */ }
         }
+      } else if (d.type === 'lokma-wedding:back') {
+        // Telegram "Назад": sayt ichida bir qadam orqaga (to'yxona → ro'yxat, tab → bosh sahifa)
+        try { if (router.canGoBack()) router.back(); else router.navigate('/'); } catch { /* router tayyor emas */ }
       } else if (d.type === 'lokma-wedding:rpc-result' && d.id) {
         const p = pending.current.get(d.id);
         if (!p) return;
@@ -191,6 +199,12 @@ export function LokmaProvider({ children }: { children: React.ReactNode }) {
     else Linking.openURL(url).catch(() => {});
   }, [parentOrigin]);
 
+  const reportRoute = useCallback((pathname: string) => {
+    const origin = parentOriginRef.current;
+    if (!embedded || !origin) return;
+    window.parent.postMessage({ type: 'lokma-wedding:route', canGoBack: pathname !== '/' && pathname !== '' }, origin);
+  }, []);
+
   const value = useMemo<LokmaValue>(() => {
     const addresses = ctx?.addresses ?? [];
     const withCoords = addresses.filter((a) => a.lat != null && a.lng != null);
@@ -206,8 +220,10 @@ export function LokmaProvider({ children }: { children: React.ReactNode }) {
       rpc,
       defaultAddress,
       goToLokma,
+      reportRoute,
+      statusTop: embedded && ctx?.insets?.statusTop ? ctx.insets.statusTop : null,
     };
-  }, [ctx, settled, visible, rpc, goToLokma]);
+  }, [ctx, settled, visible, rpc, goToLokma, reportRoute]);
 
   /*
    * Lokma ichida xavfsiz zona Lokma'dan keladi (iOS iframe ichida ham

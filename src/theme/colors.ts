@@ -21,6 +21,12 @@ export const colors = {
   cream: '#FBF5EE',
   creamDeep: '#F6ECE1',
   creamBorder: '#F1E5D7',
+  // To'yxona sahifasi (yangi dizayn)
+  page: '#FBF7F2',            // iliq fil suyagi fon
+  wineDeep: '#7A1234',        // vino gradient pastki rangi
+  wineSoft: '#F7E8EC',        // vino och fon (ikonka doiralari)
+  wineDot: '#9E1C47',
+  beigeDay: '#F3E9DE',        // qisman band kun
 
   // Neutrals
   white: '#FFFFFF',

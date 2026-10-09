@@ -15,7 +15,6 @@ export const CONTENT_MAX_WIDTH = 680;
 
 interface Props {
   topInset: number;
-  onSearch: () => void;
   onFilter: () => void;
   hasFilter: boolean;
 }
@@ -25,7 +24,7 @@ interface Props {
  * Telegram tugmalari ortida ham rasm). Tizim belgilari TopFog ostida o'qiladi.
  * Matn tepadagi xavfsiz zonadan (topInset) keyin boshlanadi.
  */
-export function HomeHero({ topInset, onSearch, onFilter, hasFilter }: Props) {
+export function HomeHero({ topInset, onFilter, hasFilter }: Props) {
   return (
     <View style={[styles.wrap, { height: HERO_HEIGHT + topInset }]}>
       {/* Rasm yuqoriroq ko'tarilgan: arka va gullar varaq ostida qolmaydi */}
@@ -50,10 +49,8 @@ export function HomeHero({ topInset, onSearch, onFilter, hasFilter }: Props) {
                 <Text style={styles.brandSub}>To‘yxonalar</Text>
               </View>
             </View>
-            <View style={styles.actions}>
-              <RoundButton icon="search" label="Qidirish" onPress={onSearch} />
-              <RoundButton icon="options-outline" label="Filtr va saralash" onPress={onFilter} dot={hasFilter} />
-            </View>
+            {/* Qidiruv — pastdagi qidiruv qatorida; bu yerda faqat filtr */}
+            <RoundButton icon="options-outline" label="Filtr va saralash" onPress={onFilter} dot={hasFilter} />
           </View>
 
           <Text style={styles.eyebrow}>ORZULARINGIZDAGI</Text>
@@ -90,7 +87,6 @@ const styles = StyleSheet.create({
   logo: { width: 41, height: 38 },
   brandName: { fontFamily: fontFamily.serif, fontSize: 22, lineHeight: 25, color: colors.white, letterSpacing: 0.2 },
   brandSub: { fontFamily: fontFamily.serif, fontSize: 13, lineHeight: 15, color: colors.goldLight, letterSpacing: 0.3 },
-  actions: { flexDirection: 'row', gap: 10 },
   round: {
     width: 35, height: 35, borderRadius: 18, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center',
     shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 10, shadowOffset: { width: 0, height: 3 }, elevation: 4,

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Stack } from 'expo-router';
+import { Stack, usePathname } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -8,7 +8,7 @@ import { useFonts, Onest_400Regular, Onest_500Medium, Onest_600SemiBold, Onest_7
 import { PlayfairDisplay_600SemiBold, PlayfairDisplay_700Bold } from '@expo-google-fonts/playfair-display';
 import { colors } from '../src/theme';
 import { LocationProvider } from '../src/store/location';
-import { LokmaProvider } from '../src/lib/lokma';
+import { LokmaProvider, useLokma } from '../src/lib/lokma';
 import { applyMobileWebFeel } from '../src/lib/webMobile';
 import { installAutoTranslate } from '../src/lib/i18n';
 
@@ -44,6 +44,7 @@ export default function RootLayout() {
         <LocationProvider>
           <FavoritesProvider>
             <StatusBar style="dark" />
+            <RouteReporter />
             <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.white } }}>
               <Stack.Screen name="(tabs)" />
               <Stack.Screen name="venue/[slug]" />
@@ -56,4 +57,12 @@ export default function RootLayout() {
       </QueryClientProvider>
     </GestureHandlerRootView>
   );
+}
+
+/** Joriy sahifani Lokma'ga bildiradi: Telegram "Назад" avval sayt ichida orqaga qaytaradi */
+function RouteReporter() {
+  const pathname = usePathname();
+  const { reportRoute, settled } = useLokma();
+  useEffect(() => { reportRoute(pathname); }, [pathname, settled, reportRoute]);
+  return null;
 }

@@ -6,8 +6,9 @@ import { IconButton } from '../ui/IconButton';
 
 const HEIGHT = 330;
 
-export function Gallery({ photos, topInset, onBack, onShare, isFavorite, onFavorite }: {
+export function Gallery({ photos, initialIndex = 0, topInset, onBack, onShare, isFavorite, onFavorite }: {
   photos: string[];
+  initialIndex?: number;
   topInset: number;
   onBack: () => void;
   onShare: () => void;
@@ -17,7 +18,7 @@ export function Gallery({ photos, topInset, onBack, onShare, isFavorite, onFavor
   const { width } = useWindowDimensions();
   const ref = useRef<FlatList<string>>(null);
   const thumbsRef = useRef<FlatList<string>>(null);
-  const [index, setIndex] = useState(0);
+  const [index, setIndex] = useState(Math.min(Math.max(0, initialIndex), Math.max(0, photos.length - 1)));
 
   const go = (i: number) => {
     const next = (i + photos.length) % photos.length;
@@ -38,6 +39,7 @@ export function Gallery({ photos, topInset, onBack, onShare, isFavorite, onFavor
           ref={ref}
           data={photos}
           horizontal
+          initialScrollIndex={index}
           pagingEnabled
           showsHorizontalScrollIndicator={false}
           keyExtractor={(p, i) => `${i}-${p}`}
@@ -68,6 +70,7 @@ export function Gallery({ photos, topInset, onBack, onShare, isFavorite, onFavor
         ref={thumbsRef}
         data={photos}
         horizontal
+        initialScrollIndex={index}
         showsHorizontalScrollIndicator={false}
         keyExtractor={(p, i) => `t${i}-${p}`}
         contentContainerStyle={{ paddingHorizontal: layout.screenPadding, paddingTop: 10, gap: 8 }}
