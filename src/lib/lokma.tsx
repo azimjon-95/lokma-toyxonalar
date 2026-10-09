@@ -121,6 +121,8 @@ interface LokmaValue extends LokmaContext {
   goToLokma: (to: '/' | '/market') => void;
   /** Joriy sahifani Lokma'ga bildirish (Telegram "Назад" ichkarida ishlashi uchun) */
   reportRoute: (pathname: string) => void;
+  /** Tepadagi fon to'q yoki och — Lokma Telegram sarlavha rangini (soat/antenna/"Назад") moslaydi */
+  setChromeTone: (tone: 'dark' | 'light') => void;
   /** Status bar balandligi (Telegram tugmalarisiz); Lokma bermasa — umumiy tepa bo'shliq */
   statusTop: number | null;
 }
@@ -205,6 +207,14 @@ export function LokmaProvider({ children }: { children: React.ReactNode }) {
     window.parent.postMessage({ type: 'lokma-wedding:route', canGoBack: pathname !== '/' && pathname !== '' }, origin);
   }, []);
 
+  const lastTone = useRef<string | null>(null);
+  const setChromeTone = useCallback((tone: 'dark' | 'light') => {
+    const origin = parentOriginRef.current;
+    if (!embedded || !origin || lastTone.current === tone) return;
+    lastTone.current = tone;
+    window.parent.postMessage({ type: 'lokma-wedding:chrome', tone }, origin);
+  }, []);
+
   const value = useMemo<LokmaValue>(() => {
     const addresses = ctx?.addresses ?? [];
     const withCoords = addresses.filter((a) => a.lat != null && a.lng != null);
@@ -221,9 +231,10 @@ export function LokmaProvider({ children }: { children: React.ReactNode }) {
       defaultAddress,
       goToLokma,
       reportRoute,
+      setChromeTone,
       statusTop: embedded && ctx?.insets?.statusTop ? ctx.insets.statusTop : null,
     };
-  }, [ctx, settled, visible, rpc, goToLokma, reportRoute]);
+  }, [ctx, settled, visible, rpc, goToLokma, reportRoute, setChromeTone]);
 
   /*
    * Lokma ichida xavfsiz zona Lokma'dan keladi (iOS iframe ichida ham

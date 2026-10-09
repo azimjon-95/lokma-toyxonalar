@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { type NativeScrollEvent, type NativeSyntheticEvent, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -11,7 +11,8 @@ import { VenueHero, WAVE_HEIGHT } from '../../src/components/venue/VenueHero';
 import { VenueHeader } from '../../src/components/venue/VenueHeader';
 import { PhotoStrip } from '../../src/components/venue/PhotoStrip';
 import { VenueStats } from '../../src/components/venue/VenueStats';
-import { WeekCalendar } from '../../src/components/venue/WeekCalendar';
+import { MonthCalendar } from '../../src/components/venue/MonthCalendar';
+import { useChromeTone } from '../../src/hooks/useChromeTone';
 import { DaySlots } from '../../src/components/venue/DaySlots';
 import { BookingBar } from '../../src/components/venue/BookingBar';
 import { SectionTitle } from '../../src/components/venue/SectionTitle';
@@ -25,7 +26,7 @@ import { TopFog } from '../../src/components/ui/TopFog';
 import { ErrorState, Loading } from '../../src/components/ui/ScreenState';
 import { formatSum } from '../../src/lib/format';
 import {
-  SESSION_LABEL, addDays, formatDayLong, isWeekend, parseISODate, startOfToday, toISODate, toMonthKey, weekdayIndex,
+  SESSION_LABEL, addDays, formatDayLong, isWeekend, parseISODate, startOfToday, toISODate, toMonthKey,
 } from '../../src/lib/dates';
 import { pricePerGuest } from '../../src/services/pricing';
 import type { CalendarDay, EventTypeCode, QuoteRequest, SessionCode } from '../../src/types';
@@ -33,19 +34,19 @@ import type { CalendarDay, EventTypeCode, QuoteRequest, SessionCode } from '../.
 /** Bo'sh seans tanlashda ustuvorlik (to'ylar asosan kechqurun) */
 const PREFERRED: SessionCode[] = ['evening', 'day', 'morning'];
 const HERO_BASE = 156;
-const mondayOf = (d: Date) => addDays(d, -weekdayIndex(d));
+const firstOfMonth = (d: Date) => new Date(d.getFullYear(), d.getMonth(), 1);
 
 export default function VenueScreen() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { embedded, statusTop } = useLokma();
+  const { embedded } = useLokma();
   const { isFavorite, toggle } = useFavorites();
   const venueQ = useVenue(slug);
   const venue = venueQ.data;
 
   const [hallIdx, setHallIdx] = useState(0);
-  const [start, setStart] = useState(() => mondayOf(startOfToday()));
+  const [month, setMonth] = useState(() => firstOfMonth(startOfToday()));
   const [date, setDate] = useState<string | null>(null);
   const [session, setSession] = useState<SessionCode | null>(null);
   const [menuId, setMenuId] = useState<string | null>(null);
@@ -57,17 +58,9 @@ export default function VenueScreen() {
   const hall = venue?.halls[hallIdx];
   const today = toISODate(startOfToday());
 
-  // Ikki haftalik oyna ikki oy chegarasiga tushishi mumkin — ikkala oy yuklanadi va birlashtiriladi
-  const m1 = toMonthKey(start);
-  const m2 = toMonthKey(addDays(start, 13));
-  const cal1 = useCalendar(hall?.id, m1);
-  const cal2 = useCalendar(hall?.id, m2);
-  const days = useMemo(() => {
-    const map = new Map<string, CalendarDay>();
-    for (const d of [...(cal1.data ?? []), ...(m2 !== m1 ? cal2.data ?? [] : [])]) map.set(d.date, d);
-    return map;
-  }, [cal1.data, cal2.data, m1, m2]);
-  const calLoading = cal1.isFetching || cal2.isFetching;
+  const cal = useCalendar(hall?.id, toMonthKey(month));
+  const days = useMemo(() => new Map<string, CalendarDay>((cal.data ?? []).map((d) => [d.date, d])), [cal.data]);
+  const calLoading = cal.isFetching;
 
   useEffect(() => {
     if (!venue) return;
@@ -123,9 +116,8 @@ export default function VenueScreen() {
   const goBack = () => (router.canGoBack() ? router.back() : router.replace('/'));
   const selectDate = (iso: string) => {
     setDate(iso);
-    const d = parseISODate(iso);
-    // Tanlangan kun ko'rinayotgan ikki haftadan tashqarida bo'lsa — oynani suramiz
-    if (iso < toISODate(start) || iso > toISODate(addDays(start, 13))) setStart(mondayOf(d));
+    // Boshqa oydagi kun (masalan ‹ › bilan oy chegarasidan o'tilganda) — kalendar shu oyga o'tadi
+    if (!iso.startsWith(toMonthKey(month))) setMonth(firstOfMonth(parseISODate(iso)));
   };
   const shiftDay = (delta: number) => {
     if (!date) return;
@@ -134,6 +126,15 @@ export default function VenueScreen() {
   };
 
   const heroHeight = insets.top + HERO_BASE;
+
+  // Tepadagi fon: rasm ustida — to'q, sahifa foniga aylantirilganda — och (tuman va status bar moslashadi)
+  const [onPage, setOnPage] = useState(false);
+  const onScroll = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const reached = e.nativeEvent.contentOffset.y > heroHeight - WAVE_HEIGHT - insets.top;
+    setOnPage((p) => (p === reached ? p : reached));
+  }, [heroHeight, insets.top]);
+  const tone = onPage ? 'light' : 'dark';
+  useChromeTone(tone);
 
   if (venueQ.isLoading) return <View style={[styles.fill, { paddingTop: insets.top }]}><Loading /></View>;
   if (venueQ.isError || !venue) {
@@ -157,6 +158,8 @@ export default function VenueScreen() {
         showsVerticalScrollIndicator={false}
         bounces={false}
         overScrollMode="never"
+        onScroll={onScroll}
+        scrollEventThrottle={32}
         contentContainerStyle={{ paddingBottom: 120 + insets.bottom }}
       >
         <VenueHero
@@ -211,18 +214,14 @@ export default function VenueScreen() {
           )}
 
           <View style={styles.gapL}>
-            <WeekCalendar
-              start={start}
+            <MonthCalendar
+              month={month}
               days={days}
               loading={calLoading}
               selected={date}
               onSelect={selectDate}
-              onShift={(w) => setStart((s) => addDays(s, 7 * w))}
-              onPickMonth={(m) => {
-                const first = m < startOfToday() ? startOfToday() : m;
-                setStart(mondayOf(first));
-                setDate(null);
-              }}
+              onShift={(delta) => { setMonth((m) => new Date(m.getFullYear(), m.getMonth() + delta, 1)); setDate(null); }}
+              onPickMonth={(m) => { setMonth(firstOfMonth(m)); setDate(null); }}
             />
           </View>
 
@@ -289,7 +288,7 @@ export default function VenueScreen() {
       </ScrollView>
 
       {/* Hero status bar ortiga chiqadi — tizim belgilari va Telegram tugmalari tuman ostida o'qiladi */}
-      <TopFog height={insets.top} statusHeight={statusTop} />
+      <TopFog height={insets.top} tone={tone} />
 
       <BookingBar
         label={sessionFree && date ? `${formatDayLong(date).split(',')[0]} · ${timeLabel}` : 'Bo‘sh kun va vaqtni tanlang'}

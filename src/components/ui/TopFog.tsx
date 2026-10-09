@@ -1,78 +1,68 @@
 import React, { useEffect, useRef } from 'react';
-import { Platform, StyleSheet, View } from 'react-native';
+import { Animated, Platform, StyleSheet, View } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 
 /*
- * Ekran tepasidagi "tuman" — ikki qatlam:
+ * Ekran tepasidagi "tuman" — BITTA yaxlit qatlam (status bar + Telegram tugmalari
+ * ostida), chiziq va bo'linishsiz pastga so'nadi. Rangi ostidagi fonga moslanadi:
  *
- *   1) STATUS BAR (soat, antenna, Wi-Fi, batareya) ostida — och, xira parda.
- *      Telegram bu belgilarni QORA chizadi, och fonda ular aniq ko'rinadi.
+ *   tone='dark'  — rasm ustida: yumshoq qorong'i parda, ozgina xiralik.
+ *                  Telegram/ilova soat, antenna va "Назад" ni OQ chizadi.
+ *   tone='light' — och sahifa foni ustida (pastga aylantirilganda): iliq fil
+ *                  suyagi rangli shisha. Belgilar QORA.
  *
- *   2) TELEGRAM TUGMALARI ("Назад", "⌄ ⋯") ostida — yumshoq qorong'i parda.
- *      Tugmalarni Telegram o'zi chizadi (shisha fon + OQ matn). Orqasi qorong'i
- *      bo'lsa, shisha to'q tus oladi va oq matn aniq o'qiladi.
- *
- * Telegram tugmalari bo'lmasa (mobil ilova, oddiy brauzer) — faqat 1-qatlam.
- * Pastki chegaralarda chiziq yo'q: web — mask-image, iOS — bosqichli blur,
- * Android — BlurView haqiqiy blur bermaydi, faqat gradient.
+ * Tus almashganda ikki qatlam 220 ms da silliq almashadi.
+ * Pastki chegara: web — mask-image; iOS — bosqichli blur; Android — faqat gradient
+ * (Android'da BlurView haqiqiy blur bermaydi).
  */
 const STEPS = [
-  { k: 1, i: 5 },
-  { k: 0.8, i: 10 },
-  { k: 0.6, i: 15 },
-  { k: 0.4, i: 20 },
+  { k: 1, i: 4 },
+  { k: 0.75, i: 9 },
+  { k: 0.5, i: 14 },
 ];
 
-interface Props {
-  /** Umumiy tepa bo'shliq (status bar + Telegram tugmalari) */
-  height: number;
-  /** Faqat status bar balandligi. Berilmasa — umumiy balandlik bilan bir xil */
-  statusHeight?: number | null;
-}
+const DARK = ['rgba(14,11,9,0.58)', 'rgba(14,11,9,0.34)', 'rgba(14,11,9,0.12)', 'rgba(14,11,9,0)'];
+const LIGHT = ['rgba(251,247,242,0.96)', 'rgba(251,247,242,0.86)', 'rgba(251,247,242,0.45)', 'rgba(251,247,242,0)'];
+const LOCS = [0, 0.45, 0.78, 1];
 
-export function TopFog({ height, statusHeight }: Props) {
-  const ref = useRef<View>(null);
-  const status = Math.min(height, statusHeight ?? height);
-  const hasButtons = height - status > 12;
-  const lightH = status + (hasButtons ? 6 : 8);
+export function TopFog({ height, tone = 'dark' }: { height: number; tone?: 'dark' | 'light' }) {
+  const wrap = useRef<View>(null);
+  const light = useRef(new Animated.Value(tone === 'light' ? 1 : 0)).current;
+
+  useEffect(() => {
+    Animated.timing(light, { toValue: tone === 'light' ? 1 : 0, duration: 220, useNativeDriver: Platform.OS !== 'web' }).start();
+  }, [tone, light]);
 
   useEffect(() => {
     if (Platform.OS !== 'web') return;
-    const el = ref.current as unknown as HTMLElement | null;
+    const el = wrap.current as unknown as HTMLElement | null;
     if (!el?.style) return;
-    const mask = 'linear-gradient(to bottom, #000 0%, #000 60%, transparent 100%)';
+    const mask = 'linear-gradient(to bottom, #000 0%, #000 62%, transparent 100%)';
     el.style.setProperty('mask-image', mask);
     el.style.setProperty('-webkit-mask-image', mask);
-  }, [lightH]);
+  }, [height]);
 
   if (height <= 0) return null;
+  const h = height + 30; // pastga yumshoq o'tish
   const blur = Platform.OS !== 'android';
 
   return (
-    <View pointerEvents="none" style={[styles.wrap, { height: height + 22 }]}>
-      {hasButtons && (
-        <LinearGradient
-          colors={['rgba(18,13,10,0.46)', 'rgba(18,13,10,0.30)', 'rgba(18,13,10,0)']}
-          locations={[0, 0.55, 1]}
-          style={[styles.abs, { top: Math.max(0, status - 4), height: height - status + 26 }]}
-        />
-      )}
-      <View ref={ref} style={[styles.abs, { top: 0, height: lightH, overflow: 'hidden' }]}>
-        {blur && (Platform.OS === 'web'
-          ? <BlurView intensity={18} tint="light" style={StyleSheet.absoluteFill} />
-          : STEPS.map((s) => <BlurView key={s.k} intensity={s.i} tint="light" style={[styles.abs, { top: 0, height: lightH * s.k }]} />))}
-        <LinearGradient
-          colors={['rgba(255,252,248,0.66)', 'rgba(255,252,248,0.46)', 'rgba(255,252,248,0)']}
-          locations={[0, 0.68, 1]}
-          style={StyleSheet.absoluteFill}
-        />
-      </View>
+    <View ref={wrap} pointerEvents="none" style={[styles.wrap, { height: h }]}>
+      {blur && (Platform.OS === 'web'
+        ? <BlurView intensity={12} tint="default" style={StyleSheet.absoluteFill} />
+        : STEPS.map((s) => <BlurView key={s.k} intensity={s.i} tint="default" style={[styles.layer, { height: h * s.k }]} />))}
+      <Animated.View style={[StyleSheet.absoluteFill, { opacity: light.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }) }]}>
+        <LinearGradient colors={DARK as unknown as [string, string, ...string[]]} locations={LOCS as unknown as [number, number, ...number[]]} style={StyleSheet.absoluteFill} />
+      </Animated.View>
+      <Animated.View style={[StyleSheet.absoluteFill, { opacity: light }]}>
+        <LinearGradient colors={LIGHT as unknown as [string, string, ...string[]]} locations={LOCS as unknown as [number, number, ...number[]]} style={StyleSheet.absoluteFill} />
+      </Animated.View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 20 },
-  abs: { position: 'absolute', left: 0, right: 0 },
+  wrap: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 20, overflow: 'hidden' },
+  layer: { position: 'absolute', top: 0, left: 0, right: 0 },
 });

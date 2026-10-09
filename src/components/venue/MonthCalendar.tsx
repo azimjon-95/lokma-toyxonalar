@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fontFamily } from '../../theme';
 import type { CalendarDay } from '../../types';
-import { MONTHS_CAP, SESSION_ORDER, WEEKDAYS_SHORT, addDays, parseISODate, startOfToday, toISODate } from '../../lib/dates';
+import { MONTHS_CAP, SESSION_ORDER, WEEKDAYS_SHORT, parseISODate, startOfToday, toISODate } from '../../lib/dates';
 import { SectionTitle } from './SectionTitle';
 
 type DayState = 'past' | 'free' | 'partial' | 'busy' | 'unknown';
@@ -18,29 +18,37 @@ function stateOf(day: CalendarDay | undefined, iso: string, today: string): DayS
 }
 
 interface Props {
-  /** Ko'rinayotgan ikki haftaning dushanbasi */
-  start: Date;
+  /** Ko'rsatilayotgan oyning 1-kuni */
+  month: Date;
   days: Map<string, CalendarDay>;
   loading: boolean;
   selected: string | null;
   onSelect: (iso: string) => void;
-  onShift: (weeks: number) => void;
+  /** -1 / +1 oy */
+  onShift: (delta: number) => void;
   onPickMonth: (month: Date) => void;
 }
 
 /*
- * "Bo'sh kunlar" — ikki haftalik ko'rinish (maket bo'yicha):
- *   sarlavha + oy tanlash (pastdan ochiladigan ro'yxat), yon tomonlarda ‹ › tugmalar,
+ * "Bo'sh kunlar" — TO'LIQ OY (maket uslubida):
+ *   sarlavha + oy tanlash (pastdan ochiladigan ro'yxat), yon tomonlarda ‹ › — oy almashadi,
  *   kunlar doira ichida; ostida 3 nuqta — nahor/kunduz/kechki (yashil — bo'sh).
  */
-export function WeekCalendar({ start, days, loading, selected, onSelect, onShift, onPickMonth }: Props) {
+export function MonthCalendar({ month, days, loading, selected, onSelect, onShift, onPickMonth }: Props) {
   const [picker, setPicker] = useState(false);
   const today = toISODate(startOfToday());
-  const cells = useMemo(() => Array.from({ length: 14 }, (_, i) => toISODate(addDays(start, i))), [start]);
-  const canPrev = toISODate(addDays(start, -1)) >= toISODate(addDays(startOfToday(), -6));
-  // Sarlavhadagi oy — ko'rinayotgan kunlarning ko'pchiligi tushgan oy
-  const mid = addDays(start, 7);
-  const monthLabel = `${MONTHS_CAP[mid.getMonth()]} ${mid.getFullYear()}`;
+  // Dushanbadan boshlanadigan to'liq haftalar; oyga tegishli bo'lmagan kataklar bo'sh
+  const weeks = useMemo(() => {
+    const lead = (month.getDay() + 6) % 7;
+    const count = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();
+    const cells: (string | null)[] = Array(lead).fill(null);
+    for (let d = 1; d <= count; d++) cells.push(toISODate(new Date(month.getFullYear(), month.getMonth(), d)));
+    while (cells.length % 7) cells.push(null);
+    return Array.from({ length: cells.length / 7 }, (_, i) => cells.slice(i * 7, i * 7 + 7));
+  }, [month]);
+  const t = startOfToday();
+  const canPrev = month.getFullYear() * 12 + month.getMonth() > t.getFullYear() * 12 + t.getMonth();
+  const monthLabel = `${MONTHS_CAP[month.getMonth()]} ${month.getFullYear()}`;
 
   return (
     <View style={{ gap: 14 }}>
@@ -61,16 +69,16 @@ export function WeekCalendar({ start, days, loading, selected, onSelect, onShift
           <View style={styles.week}>
             {WEEKDAYS_SHORT.map((w) => <Text key={w} style={styles.weekday}>{w}</Text>)}
           </View>
-          {[0, 1].map((row) => (
+          {weeks.map((week, row) => (
             <View key={row} style={styles.week}>
-              {cells.slice(row * 7, row * 7 + 7).map((iso) => (
-                <DayCell key={iso} iso={iso} day={days.get(iso)} state={stateOf(days.get(iso), iso, today)} selected={iso === selected} onPress={() => onSelect(iso)} />
-              ))}
+              {week.map((iso, i) => iso
+                ? <DayCell key={iso} iso={iso} day={days.get(iso)} state={stateOf(days.get(iso), iso, today)} selected={iso === selected} onPress={() => onSelect(iso)} />
+                : <View key={`e${row}-${i}`} style={styles.cellBox} />)}
             </View>
           ))}
         </View>
-        <SideArrow side="left" disabled={!canPrev} onPress={() => onShift(-2)} />
-        <SideArrow side="right" onPress={() => onShift(2)} />
+        <SideArrow side="left" disabled={!canPrev} onPress={() => onShift(-1)} />
+        <SideArrow side="right" onPress={() => onShift(1)} />
       </View>
 
       <View style={styles.legend}>
@@ -135,10 +143,10 @@ function SideArrow({ side, onPress, disabled }: { side: 'left' | 'right'; onPres
       disabled={disabled}
       hitSlop={8}
       accessibilityRole="button"
-      accessibilityLabel={side === 'left' ? 'Oldingi ikki hafta' : 'Keyingi ikki hafta'}
-      style={[styles.arrow, side === 'left' ? { left: -4 } : { right: -4 }, disabled && { opacity: 0.35 }]}
+      accessibilityLabel={side === 'left' ? 'Oldingi oy' : 'Keyingi oy'}
+      style={[styles.arrow, side === 'left' ? { left: -19 } : { right: -19 }, disabled && { opacity: 0.35 }]}
     >
-      <Ionicons name={side === 'left' ? 'chevron-back' : 'chevron-forward'} size={18} color={colors.primary} />
+      <Ionicons name={side === 'left' ? 'chevron-back' : 'chevron-forward'} size={16} color={colors.primary} />
     </Pressable>
   );
 }
@@ -179,7 +187,7 @@ const CIRCLE = 40;
 const styles = StyleSheet.create({
   monthPill: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, height: 38, borderRadius: 19, backgroundColor: '#F6EEE4' },
   monthText: { fontFamily: fontFamily.medium, fontSize: 14, color: colors.goldText },
-  cardWrap: { marginHorizontal: 22 },
+  cardWrap: { marginHorizontal: 24 },
   card: {
     backgroundColor: colors.white, borderRadius: 24, paddingVertical: 12, paddingHorizontal: 8, gap: 6,
     shadowColor: '#7A5A3A', shadowOpacity: 0.08, shadowRadius: 16, shadowOffset: { width: 0, height: 6 }, elevation: 2,
@@ -202,7 +210,7 @@ const styles = StyleSheet.create({
   dot: { width: 4, height: 4, borderRadius: 2 },
   selDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.primary, marginTop: 3 },
   arrow: {
-    position: 'absolute', top: '50%', marginTop: -6, width: 36, height: 36, borderRadius: 18, backgroundColor: colors.white,
+    position: 'absolute', top: '50%', marginTop: -15, width: 30, height: 30, borderRadius: 15, backgroundColor: colors.white,
     alignItems: 'center', justifyContent: 'center',
     shadowColor: '#7A5A3A', shadowOpacity: 0.14, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 3,
   },

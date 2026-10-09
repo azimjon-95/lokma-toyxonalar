@@ -1,8 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { FlatList, type LayoutChangeEvent, StyleSheet, TextInput, View } from 'react-native';
+import { FlatList, type LayoutChangeEvent, type NativeScrollEvent, type NativeSyntheticEvent, StyleSheet, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import { setStatusBarStyle } from 'expo-status-bar';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { colors } from '../../src/theme';
 import { HomeHero, HERO_HEIGHT, CONTENT_MAX_WIDTH } from '../../src/components/home/HomeHero';
 import { TopFog } from '../../src/components/ui/TopFog';
@@ -18,7 +17,7 @@ import { EmptyState, ErrorState, Loading } from '../../src/components/ui/ScreenS
 import { useVenues } from '../../src/hooks/queries';
 import { useDebounced } from '../../src/hooks/useDebounced';
 import { useLocation } from '../../src/store/location';
-import { useLokma } from '../../src/lib/lokma';
+import { useChromeTone } from '../../src/hooks/useChromeTone';
 import type { VenueListItem } from '../../src/types';
 
 const SHEET_OVERLAP = 28;
@@ -31,7 +30,6 @@ export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const loc = useLocation();
-  const { statusTop } = useLokma();
   const listRef = useRef<FlatList<VenueListItem>>(null);
   const searchRef = useRef<TextInput>(null);
   const anchors = useRef({ search: 0, list: 0 });
@@ -49,8 +47,17 @@ export default function HomeScreen() {
   const hasFilter = filter.quick !== 'all' || !!filter.event_type || filter.sort !== DEFAULT_FILTER.sort || loc.radiusKm !== 20;
   const placeLabel = loc.place.kind === 'all' ? 'Barcha' : loc.label.split(',')[0];
 
-  // Tepada och "tuman" (TopFog) bor — status bar belgilari to'q rangda aniq ko'rinadi
-  useFocusEffect(useCallback(() => { setStatusBarStyle('dark'); }, []));
+  /*
+   * Tepadagi fon: hero rasmi ustida — to'q, oq varaq tepaga yetganda — och.
+   * Tuman, status bar va Telegram tugmalari rangi shunga moslashadi.
+   */
+  const [onSheet, setOnSheet] = useState(false);
+  const onScroll = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const reached = e.nativeEvent.contentOffset.y > HERO_HEIGHT - SHEET_OVERLAP - 6;
+    setOnSheet((p) => (p === reached ? p : reached));
+  }, []);
+  const tone = onSheet ? 'light' : 'dark';
+  useChromeTone(tone);
 
   const scrollTo = (key: 'search' | 'list') =>
     listRef.current?.scrollToOffset({ offset: Math.max(0, anchors.current[key] - insets.top - 12), animated: true });
@@ -167,12 +174,14 @@ export default function HomeScreen() {
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
         showsVerticalScrollIndicator={false}
+        onScroll={onScroll}
+        scrollEventThrottle={32}
         // Pastga tortganda sahifa joyida qotib turadi (hero ostidan oq joy chiqmaydi)
         bounces={false}
         overScrollMode="never"
       />
       {/* Status bar va Telegram tugmalari ostida doimiy yumshoq tuman (hero ham, ro'yxat ham ostidan o'tadi) */}
-      <TopFog height={insets.top} statusHeight={statusTop} />
+      <TopFog height={insets.top} tone={tone} />
 
       <LocationSheet visible={placeOpen} onClose={() => setPlaceOpen(false)} />
       <FilterSheet
