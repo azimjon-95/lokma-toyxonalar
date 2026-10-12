@@ -125,7 +125,7 @@ const styles = StyleSheet.create({
   priceOn: { color: colors.white },
   off: { color: '#A39D97' },
   tag: {
-    position: 'absolute', top: -2, zIndex: 2, flexDirection: 'row', alignItems: 'center', gap: 4,
+    position: 'absolute', top: -13, zIndex: 2, flexDirection: 'row', alignItems: 'center', gap: 4,
     paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, backgroundColor: colors.white,
     shadowColor: '#7A5A3A', shadowOpacity: 0.12, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 3,
   },

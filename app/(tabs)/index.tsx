@@ -20,7 +20,7 @@ import { useLocation } from '../../src/store/location';
 import { useChromeTone } from '../../src/hooks/useChromeTone';
 import type { VenueListItem } from '../../src/types';
 
-const SHEET_OVERLAP = 28;
+const SHEET_OVERLAP = 52;
 const SORT_LABEL = { distance: 'Eng yaqini birinchi', price_asc: 'Arzonidan', price_desc: 'Qimmatidan', rating: 'Eng yaxshi birinchi' } as const;
 
 type Filter = Omit<AdvancedFilter, 'radiusKm'>;

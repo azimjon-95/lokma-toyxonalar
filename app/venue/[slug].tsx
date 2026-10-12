@@ -310,7 +310,7 @@ export default function VenueScreen() {
 
 const styles = StyleSheet.create({
   fill: { flex: 1, backgroundColor: colors.page },
-  body: { marginTop: -WAVE_HEIGHT * 0.35, paddingTop: 4, backgroundColor: colors.page, width: '100%', maxWidth: 720, alignSelf: 'center' },
+  body: { marginTop: -WAVE_HEIGHT * 0.15, paddingTop: 4, backgroundColor: colors.page, width: '100%', maxWidth: 720, alignSelf: 'center' },
   pad: { paddingHorizontal: 16 },
   gap: { marginTop: 16 },
   gapL: { marginTop: 26 },
