@@ -3,6 +3,24 @@
 Atrofdagi to'yxonalar katalogi: avtomatik joylashuv, xarita, bo'sh kunlar kalendari, menyu va xizmatlar bilan narx hisobi, bron.
 Android, iOS va Web (Telegram Mini App uchun asos) — bitta kod.
 
+## Xarita ("Xarita" tabi)
+
+To'yxonalar **real xaritada**, server koordinatalari bo'yicha, foydalanuvchi manzili markazida:
+- **Web / Telegram Mini App** — Leaflet (`src/components/map/LeafletMap.web.tsx`), **native** (iOS/Android) — react-native-maps (`app/(tabs)/map.tsx`).
+- Tanlangan radius (10 / 20 / 50 km yoki hudud) doira bo'lib chiziladi, o'zgarganda silliq kengayadi va xarita uchib moslashadi.
+- Narx belgilari aniq joyida; bir-birini bosib qolsa jamlanadi (bosilsa yaqinlashadi). Yashil nuqta — bugun bo'sh.
+- Pastda kartochkalar: surilsa xarita shu to'yxonaga o'tadi, belgi bosilsa kartochka siljiydi. "Yo'l" tugmasi — Yandex Maps.
+- "Siz" nuqtasi, "Hammasini ko'rsatish", "Joylashuvimga qaytish", natija bo'lmasa radiusni kengaytirish taklifi.
+
+**Plitkalar (tiles):** standart — CARTO Voyager (OpenStreetMap ma'lumoti). U bepul, lekin **tijorat/yuqori trafik uchun
+litsenziya talab qiladi** — production'da MapTiler / Stadia / Mapbox kabi provayder kalitini bering:
+
+```
+EXPO_PUBLIC_MAP_TILES_URL=https://api.maptiler.com/maps/streets-v2/256/{z}/{x}/{y}.png?key=...
+EXPO_PUBLIC_MAP_ATTRIBUTION=© MapTiler © OpenStreetMap contributors
+```
+`{r}` (retina) ixtiyoriy. Android native xarita uchun `GOOGLE_MAPS_ANDROID_KEY` kerak (avvalgidek).
+
 ## Ishga tushirish
 
 ```bash
