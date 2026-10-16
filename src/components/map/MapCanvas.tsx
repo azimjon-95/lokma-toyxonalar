@@ -2,6 +2,7 @@
 import type { Ref } from 'react';
 import type { LeafletMapHandle, LeafletMapProps } from './LeafletMap';
 
+export type MapProvider = 'yandex' | 'maplibre' | 'osm';
 export type MapCanvasHandle = LeafletMapHandle;
-export type MapCanvasProps = LeafletMapProps & { onProvider?: (p: 'yandex' | 'osm') => void };
+export type MapCanvasProps = LeafletMapProps & { onProvider?: (p: MapProvider, reasons: string[]) => void };
 export const MapCanvas = (_props: MapCanvasProps & { ref?: Ref<MapCanvasHandle> }) => null;

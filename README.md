@@ -6,38 +6,44 @@ Android, iOS va Web (Telegram Mini App uchun asos) — bitta kod.
 ## Xarita ("Xarita" tabi)
 
 To'yxonalar **real xaritada**, server koordinatalari bo'yicha, foydalanuvchi manzili markazida:
-- **Web / Telegram Mini App** — Yandex Maps (`YandexMap.web.tsx`), zaxira — Leaflet/OSM (`LeafletMap.web.tsx`), tanlovchi — `MapCanvas.web.tsx`; **native** (iOS/Android) — react-native-maps (`app/(tabs)/map.tsx`).
+- **Web / Telegram Mini App** — Yandex Maps (`YandexMap.web.tsx`) → MapLibre/OpenFreeMap (`MapLibreMap.web.tsx`) → Leaflet/OSM (`LeafletMap.web.tsx`), tanlovchi — `MapCanvas.web.tsx`; **native** (iOS/Android) — react-native-maps (`app/(tabs)/map.tsx`).
 - Tanlangan radius (10 / 20 / 50 km yoki hudud) doira bo'lib chiziladi, o'zgarganda silliq kengayadi va xarita uchib moslashadi.
 - Narx belgilari aniq joyida; bir-birini bosib qolsa jamlanadi (bosilsa yaqinlashadi). Yashil nuqta — bugun bo'sh.
 - Pastda kartochkalar: surilsa xarita shu to'yxonaga o'tadi, belgi bosilsa kartochka siljiydi. "Yo'l" tugmasi — Yandex Maps.
 - "Siz" nuqtasi, "Hammasini ko'rsatish", "Joylashuvimga qaytish", natija bo'lmasa radiusni kengaytirish taklifi.
 
-### Xarita provayderi: Yandex Maps (standart) → OpenStreetMap (zaxira)
+### Xarita provayderlari zanjiri (web / Telegram Mini App)
 
-Web / Telegram Mini App'da xarita **Yandex Maps JS API v3** (vektor, O'zbekiston uchun to'liq ko'cha/uy ma'lumoti).
-Kalit bo'lmasa yoki Yandex ishlamasa (kalit/domen ruxsat etilmagan, 403, internet, 9 soniya javob yo'q) xarita
-**avtomatik OpenStreetMap'ga (Leaflet)** o'tadi — foydalanuvchi xaritasiz qolmaydi.
+**Yandex Maps** → **MapLibre + OpenFreeMap** (kalitsiz, bepul, tijoratga ruxsat) → **Leaflet + OSM** (faqat WebGL yo'q bo'lsa).
+Har bosqich ishlamasa keyingisiga **avtomatik** o'tadi — foydalanuvchi xaritasiz qolmaydi. MapLibre (~1 MB) alohida
+bo'lak sifatida faqat kerak bo'lganda yuklanadi (Yandex ishlasa umuman tushmaydi).
 
-**1. Kalit olish:** [developer.tech.yandex.ru](https://developer.tech.yandex.ru/) → kabinet → *Подключить API* →
-**«JavaScript API и HTTP Геокодер»**. Kalit ~15 daqiqada faollashadi.
-**2. Majburiy:** kalitda **«Ограничение по HTTP Referer»** to'ldirilgan bo'lishi shart (v3 busiz ishlamaydi). Domenlarni yozing:
-`wedding.lokma.uz`, `*.lokma.uz`, `lokma.uz`, Vercel domeningiz (`*.vercel.app` preview'lar uchun), sinov uchun `localhost`.
-Tariflar/limitlar: kabinetdagi *Тарифы* bo'limi (ishga tushirishdan oldin ko'ring).
-**3. Sozlash:**
+**Yandex kaliti** ([developer.tech.yandex.ru](https://developer.tech.yandex.ru/) → «JavaScript API и HTTP Геокодер»):
+kalitda **«Ограничение по HTTP Referer»** to'ldirilgan bo'lishi SHART (v3 busiz ishlamaydi) — `wedding.lokma.uz`, `*.lokma.uz`,
+`lokma.uz`, Vercel domeningiz, sinov uchun `localhost`. Kalit ~15 daqiqada faollashadi. Tariflar: kabinetdagi *Тарифы*.
+
 ```
-EXPO_PUBLIC_YANDEX_MAPS_KEY=<kalit>        # bo'sh bo'lsa — to'g'ridan-to'g'ri OSM
-EXPO_PUBLIC_MAP_PROVIDER=auto              # auto (standart) | yandex | osm
-EXPO_PUBLIC_YANDEX_LANG=ru_RU              # Yandex o'zbekchani qo'llamaydi: ru_RU, en_US, tr_TR, uk_UA ...
+EXPO_PUBLIC_YANDEX_MAPS_KEY=<kalit>          # bo'sh bo'lsa — to'g'ridan-to'g'ri MapLibre
+EXPO_PUBLIC_YANDEX_GEOCODER_KEY=<kalit>      # ixtiyoriy (qidiruv/geokoder)
+EXPO_PUBLIC_YANDEX_ROUTING_KEY=<kalit>       # ixtiyoriy (marshrut)
+EXPO_PUBLIC_MAP_PROVIDER=auto                # auto | yandex | maplibre | osm
+EXPO_PUBLIC_YANDEX_LANG=ru_RU                # Yandex o'zbekchani qo'llamaydi: ru_RU, en_US, tr_TR ...
+EXPO_PUBLIC_MAPLIBRE_STYLE=https://tiles.openfreemap.org/styles/liberty   # liberty | bright | positron
+EXPO_PUBLIC_MAP_DIAG=1                       # sinov: xaritada qaysi provayder va nega zaxiraga o'tilgani chipi
 ```
-Vercel: Settings → Environment Variables'ga qo'shib, **Redeploy** qiling (`EXPO_PUBLIC_*` build vaqtida kiradi; lokalda `npx expo start --clear`).
+Vercel: Settings → Environment Variables'ga qo'shib **Redeploy** qiling (`EXPO_PUBLIC_*` build vaqtida kiradi; lokalda `npx expo start --clear`).
+`.env.production` dagi qiymatlardan Vercel env ustun turadi.
+
+**Diagnostika (`EXPO_PUBLIC_MAP_DIAG=1`):** xarita tepasida chip: `Xarita: Yandex ✓` yoki `MapLibre` + sabab, masalan
+`Yandex: skript yuklanmadi (403: kalit yoki domen ruxsati · wedding.lokma.uz)` — shu domenni Yandex kabinetida kalitning Referer ro'yxatiga qo'shing.
+Tayyor bo'lgach `0` qiling.
+
+**OpenFreeMap:** ommaviy server kalit talab qilmaydi, lekin **SLA yo'q** — juda muhim bo'lsa o'zingiz hostlang
+([hyperknot/openfreemap](https://github.com/hyperknot/openfreemap)) yoki MapTiler uslubini `EXPO_PUBLIC_MAPLIBRE_STYLE` ga bering.
+**Leaflet zaxirasi** OSM plitkalarini ishlatadi (kam yuk uchun); ko'p trafik uchun `EXPO_PUBLIC_MAP_TILES_URL`.
+(CARTO basemaps endi kalit talab qiladi, shuning uchun ishlatilmaydi.)
 
 **Yo'l ko'rsatish / joy:** `yandex.uz/maps` havolalari (telefonda Yandex Maps / Go ilovasi o'zi ochiladi).
-
-**OSM zaxirasi plitkalari:** CARTO Voyager (bepul, lekin tijorat/yuqori trafik uchun litsenziya kerak). Almashtirish:
-```
-EXPO_PUBLIC_MAP_TILES_URL=https://api.maptiler.com/maps/streets-v2/256/{z}/{x}/{y}.png?key=...
-EXPO_PUBLIC_MAP_ATTRIBUTION=© MapTiler © OpenStreetMap contributors
-```
 **Native (iOS/Android):** hozircha Apple/Google xaritasi (react-native-maps; Android uchun `GOOGLE_MAPS_ANDROID_KEY`).
 Yandex MapKit native'da `react-native-yamap` + dev build talab qiladi — alohida bosqich.
 

@@ -176,16 +176,18 @@ export const YandexMap = forwardRef<LeafletMapHandle, YandexMapProps>(function Y
 
       // Kamera hodisalari: harakat tugagach jamlanma yangilanadi; xarita javob bersa — "sog'lom"
       const scheduleClusters = () => { clearTimeout(clusterTimer); clusterTimer = setTimeout(refreshClusters, 60); };
+      const alive = () => { st.healthy = true; latest.current.onTileProblem?.(false); };
       map.addChild(new YMapListener({
-        onUpdate: (o) => { if (!o.mapInAction) scheduleClusters(); },
+        onUpdate: (o) => { alive(); if (!o.mapInAction) scheduleClusters(); },
+        onResize: alive,
         onActionEnd: scheduleClusters,
-        onStateChanged: () => { st.healthy = true; latest.current.onTileProblem?.(false); },
+        onStateChanged: alive,
       }));
 
       // Kirish animatsiyasi: uzoqdan yaqinlashib, doira kengayadi
       const t = setTimeout(() => { fitCircle(true); if (!wide) tweenRadius(radiusKm, 1300); }, 300);
-      // Xarita 9 soniyada javob bermasa (kalit/domen/tarmoq) — OSM'ga o'tamiz
-      healthTimer = setTimeout(() => { if (!st.healthy) latest.current.onFailure('xarita javob bermadi'); }, 9000);
+      // Hech qanday hodisa (update/resize/state) kelmasa 12 soniyadan keyin zaxiraga o'tamiz
+      healthTimer = setTimeout(() => { if (!st.healthy) latest.current.onFailure('xarita 12 s ichida hodisa bermadi'); }, 12000);
       return () => {
         clearTimeout(t); clearTimeout(healthTimer); clearTimeout(clusterTimer);
         cancelAnimationFrame(st.raf);

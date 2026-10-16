@@ -9,7 +9,8 @@ import { useVenues } from '../../src/hooks/queries';
 import { useChromeTone } from '../../src/hooks/useChromeTone';
 import { useLocation } from '../../src/store/location';
 import { TopFog } from '../../src/components/ui/TopFog';
-import { MapCanvas, type MapCanvasHandle } from '../../src/components/map/MapCanvas';
+import { MapCanvas, type MapCanvasHandle, type MapProvider } from '../../src/components/map/MapCanvas';
+import { MAP_DIAG } from '../../src/lib/yandex';
 import { MapCarousel } from '../../src/components/map/MapCarousel';
 import { RadiusSwitch } from '../../src/components/map/RadiusSwitch';
 import { AnimatedCount } from '../../src/components/map/AnimatedCount';
@@ -28,6 +29,8 @@ export default function MapWeb() {
   const [sel, setSel] = useState<{ id: string | null; pan: boolean; seq: number }>({ id: null, pan: false, seq: 0 });
   const [dockH, setDockH] = useState(190);
   const [tileProblem, setTileProblem] = useState(false);
+  const [provider, setProvider] = useState<{ p: MapProvider; reasons: string[] } | null>(null);
+  const onProvider = useCallback((p: MapProvider, reasons: string[]) => setProvider({ p, reasons }), []);
 
   // Tanlangan to'yxona ro'yxatda bo'lmasa (radius almashdi) — eng yaqini
   const selectedId = venues.some((v) => v.id === sel.id) ? sel.id : venues[0]?.id ?? null;
@@ -51,6 +54,7 @@ export default function MapWeb() {
         onSelect={select}
         insets={{ top: topInset, bottom: dockH + 24 }}
         onTileProblem={setTileProblem}
+        onProvider={onProvider}
       />
 
       <TopFog height={insets.top} tone="light" />
@@ -74,6 +78,12 @@ export default function MapWeb() {
         ) : (
           <RadiusSwitch value={loc.radiusKm} options={RADII} onChange={loc.setRadiusKm} />
         )}
+        {MAP_DIAG && provider ? (
+          <View style={styles.diag} accessibilityLabel="Xarita diagnostikasi">
+            <Text style={styles.diagText}>Xarita: {provider.p === 'yandex' ? 'Yandex ✓' : provider.p === 'maplibre' ? 'MapLibre (OpenFreeMap)' : 'OSM (zaxira)'}</Text>
+            {provider.reasons.map((r) => <Text key={r} style={styles.diagReason}>• {r}</Text>)}
+          </View>
+        ) : null}
         {tileProblem ? (
           <View style={styles.warn}><Ionicons name="cloud-offline-outline" size={15} color="#8A5A00" /><Text style={styles.warnText}>Xarita yuklanmadi. Internetni tekshiring.</Text></View>
         ) : null}
@@ -130,6 +140,9 @@ const styles = StyleSheet.create({
   wideText: { fontFamily: fontFamily.bold, fontSize: 13, color: colors.white },
   warn: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#FFF3D6', borderRadius: 14, paddingHorizontal: 12, paddingVertical: 8 },
   warnText: { fontFamily: fontFamily.medium, fontSize: 12, color: '#8A5A00' },
+  diag: { alignSelf: 'flex-start', maxWidth: '100%', backgroundColor: 'rgba(255,255,255,0.94)', borderRadius: 14, paddingHorizontal: 12, paddingVertical: 8, gap: 2, ...shadow },
+  diagText: { fontFamily: fontFamily.bold, fontSize: 12, color: colors.text },
+  diagReason: { fontFamily: fontFamily.medium, fontSize: 11, color: '#8A5A00' },
   fabs: { position: 'absolute', right: 16, gap: 10, zIndex: 30 },
   fab: { width: 48, height: 48, borderRadius: 24, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center', ...shadow },
   dock: { position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 30, alignItems: 'center' },

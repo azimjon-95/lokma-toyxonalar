@@ -13,11 +13,11 @@ import { WINE, clusterMarkup, ensureMapStyle, meMarkup, pinMarkup, radiusMarkup 
  *   • to'yxonalar — aniq koordinatalarda narx belgilari; bir-birini bosib qolsa jamlanadi, bosilsa yaqinlashadi;
  *   • tanlangan to'yxona belgisi sakraydi, xarita unga uchadi (pastdagi kartochkalar bilan bog'liq).
  *
- * Plitkalar: EXPO_PUBLIC_MAP_TILES_URL (standart: CARTO Voyager). Production uchun litsenziyali
- * provayder (MapTiler, Stadia, Mapbox) kalitini shu o'zgaruvchi orqali bering.
+ * Oxirgi zaxira (WebGL yo'q bo'lsa): OSM raster plitkalari — kam yuk uchun. Yuqori trafik uchun
+ * EXPO_PUBLIC_MAP_TILES_URL orqali litsenziyali provayder (MapTiler va h.k.) bering.
  */
-const TILES = process.env.EXPO_PUBLIC_MAP_TILES_URL || 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
-const ATTRIBUTION = process.env.EXPO_PUBLIC_MAP_ATTRIBUTION || '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> · © <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a>';
+const TILES = process.env.EXPO_PUBLIC_MAP_TILES_URL || 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+const ATTRIBUTION = process.env.EXPO_PUBLIC_MAP_ATTRIBUTION || '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors';
 
 export interface LeafletMapHandle {
   /** Foydalanuvchi va radius doirasiga qaytish */
@@ -181,7 +181,7 @@ export const LeafletMap = forwardRef<LeafletMapHandle, Props>(function LeafletMa
     // Plitkalar yuklanmasa foydalanuvchiga aytamiz (internet/CSP)
     let errors = 0;
     let loaded = false;
-    const tiles = L.tileLayer(TILES, { subdomains: 'abcd', maxZoom: 19, keepBuffer: 4, updateWhenIdle: false, crossOrigin: true });
+    const tiles = L.tileLayer(TILES, { maxZoom: 19, keepBuffer: 4, updateWhenIdle: false, crossOrigin: true });
     tiles.on('tileload', () => { loaded = true; errors = 0; latest.current.onTileProblem?.(false); });
     tiles.on('tileerror', () => { errors += 1; if (!loaded && errors >= 4) latest.current.onTileProblem?.(true); });
     tiles.addTo(m);
