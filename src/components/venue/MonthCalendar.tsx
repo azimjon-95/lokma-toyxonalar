@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { BottomSheet } from '../ui/BottomSheet';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -165,10 +166,8 @@ function MonthPicker({ visible, onClose, onPick }: { visible: boolean; onClose: 
   const t = startOfToday();
   const months = Array.from({ length: 12 }, (_, i) => new Date(t.getFullYear(), t.getMonth() + i, 1));
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose} accessibilityLabel="Yopish" />
-      <View style={[styles.sheet, { paddingBottom: insets.bottom + 16 }]}>
-        <View style={styles.handle} />
+    <BottomSheet visible={visible} onClose={onClose} backdropColor="rgba(20,14,12,0.4)" handleColor="#E2D8CC" sheetStyle={[styles.sheet, { paddingTop: 0, paddingBottom: insets.bottom + 16 }]}>
+      <>
         <Text style={styles.sheetTitle}>Oyni tanlang</Text>
         <ScrollView contentContainerStyle={styles.monthGrid}>
           {months.map((m) => (
@@ -178,8 +177,8 @@ function MonthPicker({ visible, onClose, onPick }: { visible: boolean; onClose: 
             </Pressable>
           ))}
         </ScrollView>
-      </View>
-    </Modal>
+      </>
+    </BottomSheet>
   );
 }
 

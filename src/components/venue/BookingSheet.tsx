@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { KeyboardAvoidingView, Linking, Modal, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Linking, Platform, StyleSheet, Text, TextInput, View } from 'react-native';
+import { BottomSheet } from '../ui/BottomSheet';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, typography, fontFamily } from '../../theme';
@@ -60,11 +61,8 @@ export function BookingSheet({ visible, onClose, request, summary }: Props) {
   const holdTime = done ? new Date(done.hold_until).toTimeString().slice(0, 5) : '';
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose} accessibilityLabel="Yopish" />
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <View style={[styles.sheet, { paddingBottom: insets.bottom + spacing[4] }]}>
-          <View style={styles.handle} />
+    <BottomSheet visible={visible} onClose={onClose} keyboardAvoiding sheetStyle={[styles.sheet, { paddingTop: 0, paddingBottom: insets.bottom + spacing[4] }]}>
+      <>
           {done ? (
             <View style={styles.success}>
               <View style={styles.okIcon}>
@@ -115,9 +113,8 @@ export function BookingSheet({ visible, onClose, request, summary }: Props) {
               </View>
             </View>
           )}
-        </View>
-      </KeyboardAvoidingView>
-    </Modal>
+      </>
+    </BottomSheet>
   );
 }
 

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import { BottomSheet } from '../ui/BottomSheet';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radius, spacing, typography } from '../../theme';
 import type { EventTypeCode, QuickFilter, SortKey } from '../../types';
@@ -49,10 +50,8 @@ export function FilterSheet({ visible, value, onClose, onApply }: Props) {
   }, [visible, value]);
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose} accessibilityLabel="Yopish" />
-      <View style={[styles.sheet, { paddingBottom: insets.bottom + spacing[4] }]}>
-        <View style={styles.handle} />
+    <BottomSheet visible={visible} onClose={onClose} sheetStyle={[styles.sheet, { paddingTop: 0, paddingBottom: insets.bottom + spacing[4] }]}>
+      <>
         <Text style={styles.title}>Filtr</Text>
 
         <Text style={styles.label}>Tezkor</Text>
@@ -97,8 +96,8 @@ export function FilterSheet({ visible, value, onClose, onApply }: Props) {
           />
           <Button title="Ko‘rsatish" style={{ flex: 2 }} onPress={() => onApply(draft)} />
         </View>
-      </View>
-    </Modal>
+      </>
+    </BottomSheet>
   );
 }
 

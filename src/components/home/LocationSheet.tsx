@@ -1,5 +1,6 @@
 import React from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { BottomSheet } from '../ui/BottomSheet';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, typography, fontFamily } from '../../theme';
 import { useLocation } from '../../store/location';
@@ -38,10 +39,8 @@ export function LocationSheet({ visible, onClose, compact = false }: { visible: 
   );
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose} />
-      <View style={styles.sheet}>
-        <View style={styles.handle} />
+    <BottomSheet visible={visible} onClose={onClose} backdropColor="rgba(0,0,0,0.35)" sheetStyle={[styles.sheet, { paddingTop: 0 }]}>
+      <>
         <Text style={styles.h}>{compact ? 'Qayerning atrofi?' : 'Qayerdagi to‘yxonalar?'}</Text>
         <ScrollView style={{ maxHeight: 520 }} contentContainerStyle={{ paddingBottom: spacing[6] }}>
           {addresses.length > 0 && <Text style={styles.group}>Mening manzillarim</Text>}
@@ -62,8 +61,8 @@ export function LocationSheet({ visible, onClose, compact = false }: { visible: 
             </>
           )}
         </ScrollView>
-      </View>
-    </Modal>
+      </>
+    </BottomSheet>
   );
 }
 

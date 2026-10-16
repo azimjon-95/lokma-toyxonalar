@@ -6,6 +6,8 @@ export const WEEKDAYS = ['dushanba', 'seshanba', 'chorshanba', 'payshanba', 'jum
 export const WEEKDAYS_SHORT = ['Du', 'Se', 'Ch', 'Pa', 'Ju', 'Sh', 'Ya'];
 
 export const SESSION_LABEL: Record<SessionCode, string> = { morning: 'Nahorgi osh', day: 'Kunduzgi', evening: 'Kechki' };
+/** Seans kartalaridagi to'liq nom (to'yxona sahifasi). Qisqa SESSION_LABEL — "Bo'sh: bugun, kechki" kabi matnlar uchun. */
+export const SESSION_TITLE: Record<SessionCode, string> = { morning: 'Nahorgi osh', day: 'Kunduzgi to‘y', evening: 'Nikoh to‘y' };
 export const SESSION_ORDER: SessionCode[] = ['morning', 'day', 'evening'];
 
 const pad = (n: number) => String(n).padStart(2, '0');

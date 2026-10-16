@@ -27,7 +27,7 @@ import { ErrorState } from '../../src/components/ui/ScreenState';
 import { VenuePageSkeleton } from '../../src/components/ui/Skeletons';
 import { formatSum } from '../../src/lib/format';
 import {
-  SESSION_LABEL, addDays, formatDayLong, isWeekend, parseISODate, startOfToday, toISODate, toMonthKey,
+  SESSION_LABEL, formatDayLong, isWeekend, parseISODate, startOfToday, toISODate, toMonthKey,
 } from '../../src/lib/dates';
 import { pricePerGuest } from '../../src/services/pricing';
 import type { CalendarDay, EventTypeCode, QuoteRequest, SessionCode } from '../../src/types';
@@ -120,11 +120,6 @@ export default function VenueScreen() {
     setDate(iso);
     // Boshqa oydagi kun (masalan ‹ › bilan oy chegarasidan o'tilganda) — kalendar shu oyga o'tadi
     if (!iso.startsWith(toMonthKey(month))) setMonth(firstOfMonth(parseISODate(iso)));
-  };
-  const shiftDay = (delta: number) => {
-    if (!date) return;
-    const next = toISODate(addDays(parseISODate(date), delta));
-    if (next >= today) selectDate(next);
   };
 
   const heroHeight = insets.top + HERO_BASE;
@@ -230,16 +225,12 @@ export default function VenueScreen() {
           {date && menu && (
             <View style={styles.gapL}>
               <DaySlots
-                date={date}
                 day={selectedDay}
                 sessions={venue.sessions}
                 selected={session}
                 recommended={recommended}
                 onSelect={setSession}
                 priceFor={(s) => pricePerGuest(menu, s, weekend, venue.weekend_factor)}
-                onPrevDay={() => shiftDay(-1)}
-                onNextDay={() => shiftDay(1)}
-                canPrevDay={date > today}
               />
             </View>
           )}

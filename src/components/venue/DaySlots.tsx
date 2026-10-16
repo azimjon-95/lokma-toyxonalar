@@ -4,41 +4,26 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, fontFamily } from '../../theme';
 import type { CalendarDay, SessionCode, SessionTemplate } from '../../types';
-import { formatDayLong } from '../../lib/dates';
+import { SESSION_TITLE } from '../../lib/dates';
 import { formatShort } from '../../lib/format';
-import { SectionTitle } from './SectionTitle';
 
 interface Props {
-  date: string;
   day: CalendarDay | undefined;
   sessions: SessionTemplate[];
   selected: SessionCode | null;
   recommended: SessionCode | null;
   onSelect: (s: SessionCode) => void;
   priceFor: (s: SessionTemplate) => number;
-  onPrevDay: () => void;
-  onNextDay: () => void;
-  canPrevDay: boolean;
 }
 
 /*
- * Tanlangan kun va bo'sh vaqtlar: gorizontal chiplar.
+ * Tanlangan kunning seanslari: gorizontal kartalar. Har kartada ichida, vaqt tepasida — seans nomi (Nahorgi osh / ...).
+ * Bo'sh — narx bilan; band — o'chirilgan (bosilmaydi), "Band" yozuvi va qulf belgisi bilan.
  * Tanlangani — vino gradient (ichki yaltirash bilan), tavsiya etilgani ustida "Tavsiya".
  */
-export function DaySlots({ date, day, sessions, selected, recommended, onSelect, priceFor, onPrevDay, onNextDay, canPrevDay }: Props) {
+export function DaySlots({ day, sessions, selected, recommended, onSelect, priceFor }: Props) {
   return (
-    <View style={{ gap: 14 }}>
-      <SectionTitle
-        icon="clock-outline"
-        title={formatDayLong(date)}
-        subtitle="Bo‘sh vaqtlar"
-        right={
-          <View style={styles.navs}>
-            <NavBtn icon="chevron-back" label="Oldingi kun" onPress={onPrevDay} disabled={!canPrevDay} />
-            <NavBtn icon="chevron-forward" label="Keyingi kun" onPress={onNextDay} />
-          </View>
-        }
-      />
+    <View>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
         {sessions.map((s) => {
           const status = day?.sessions[s.code] ?? 'booked';
@@ -47,13 +32,16 @@ export function DaySlots({ date, day, sessions, selected, recommended, onSelect,
           const rec = free && recommended === s.code;
           const body = (
             <>
-              <Text style={[styles.time, on && styles.timeOn, !free && styles.off]}>{s.start_time}–{s.end_time}</Text>
+              <View style={[styles.chip, on && styles.chipOn, !free && styles.chipOff]}>
+                <Text style={[styles.chipText, on && styles.chipTextOn, !free && styles.off]} numberOfLines={1}>{SESSION_TITLE[s.code]}</Text>
+              </View>
+              <Text style={[styles.time, on && styles.timeOn, !free && styles.off, !free && styles.timeStruck]}>{s.start_time}–{s.end_time}</Text>
               <View style={styles.priceRow}>
                 <View style={[styles.dot, { backgroundColor: free ? (on ? '#7CE0A3' : colors.success) : '#C9C9CD' }]} />
-                <Text style={[styles.price, on && styles.priceOn, !free && styles.off]}>
+                <Text style={[styles.price, on && styles.priceOn, !free && styles.busyText]}>
                   {free ? formatShort(priceFor(s)) : status === 'hold' ? 'Band qilinmoqda' : 'Band'}
                 </Text>
-                <Ionicons name="chevron-forward" size={14} color={on ? colors.white : '#A39D97'} />
+                <Ionicons name={free ? 'chevron-forward' : 'lock-closed'} size={free ? 14 : 12} color={on ? colors.white : '#A39D97'} />
               </View>
             </>
           );
@@ -70,7 +58,7 @@ export function DaySlots({ date, day, sessions, selected, recommended, onSelect,
                 disabled={!free}
                 accessibilityRole="radio"
                 accessibilityState={{ checked: on, disabled: !free }}
-                accessibilityLabel={`${s.start_time}–${s.end_time}, ${free ? formatShort(priceFor(s)) + ' so‘m kishi boshiga' : 'band'}`}
+                accessibilityLabel={`${SESSION_TITLE[s.code]}, ${s.start_time}–${s.end_time}, ${free ? formatShort(priceFor(s)) + ' so‘m kishi boshiga' : 'band'}`}
                 style={({ pressed }) => [pressed && free && { transform: [{ scale: 0.96 }] }]}
               >
                 {on ? (
@@ -92,18 +80,8 @@ export function DaySlots({ date, day, sessions, selected, recommended, onSelect,
   );
 }
 
-function NavBtn({ icon, label, onPress, disabled }: { icon: 'chevron-back' | 'chevron-forward'; label: string; onPress: () => void; disabled?: boolean }) {
-  return (
-    <Pressable onPress={onPress} disabled={disabled} hitSlop={6} accessibilityRole="button" accessibilityLabel={label} style={[styles.nav, disabled && { opacity: 0.35 }]}>
-      <Ionicons name={icon} size={17} color={icon === 'chevron-back' ? colors.goldText : colors.text} />
-    </Pressable>
-  );
-}
-
 const styles = StyleSheet.create({
-  navs: { flexDirection: 'row', gap: 8 },
-  nav: { width: 40, height: 40, borderRadius: 20, borderWidth: 1, borderColor: '#EDE3D8', backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center' },
-  row: { gap: 10, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 6 },
+  row: { gap: 10, paddingHorizontal: 16, paddingTop: 14, paddingBottom: 6 },
   slotBox: { alignItems: 'center' },
   slot: {
     minWidth: 142, paddingVertical: 12, paddingHorizontal: 16, borderRadius: 20, backgroundColor: colors.white, gap: 6,
@@ -117,7 +95,14 @@ const styles = StyleSheet.create({
   slotOff: { backgroundColor: '#F7F5F2', shadowOpacity: 0 },
   shine: { position: 'absolute', top: 0, left: 14, right: 14, height: 1.5, backgroundColor: 'rgba(255,255,255,0.45)', borderRadius: 1 },
   innerRing: { position: 'absolute', top: 2, left: 2, right: 2, bottom: 2, borderRadius: 18, borderWidth: 1, borderColor: 'rgba(230,199,137,0.55)' },
+  chip: { alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 9, backgroundColor: '#FBF1E6' },
+  chipOn: { backgroundColor: 'rgba(255,255,255,0.2)' },
+  chipOff: { backgroundColor: '#ECEAE7' },
+  chipText: { fontFamily: fontFamily.semiBold, fontSize: 10.5, color: '#8A5A2B' },
+  chipTextOn: { color: colors.white },
   time: { fontFamily: fontFamily.semiBold, fontSize: 15, color: colors.text },
+  timeStruck: { textDecorationLine: 'line-through' },
+  busyText: { color: '#8C867F', fontFamily: fontFamily.semiBold },
   timeOn: { color: colors.white },
   priceRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   dot: { width: 8, height: 8, borderRadius: 4 },
