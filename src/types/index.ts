@@ -142,7 +142,7 @@ export interface Booking {
   guests: number;
   total: number;
   deposit: number;
-  /** To'lov sahifasi (Click/Payme/Uzum). Mock rejimda null */
+  /** To'lov sahifasi (Click/Payme/Uzum) */
   payment_url: string | null;
   /** Seans shu vaqtgacha band qilib turiladi (TZ: 30 daqiqa) */
   hold_until: string;

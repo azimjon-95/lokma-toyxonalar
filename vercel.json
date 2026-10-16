@@ -26,6 +26,10 @@
         {
           "key": "Content-Security-Policy",
           "value": "frame-ancestors 'self' https://lakmago-client.vercel.app https://lokma.uz https://*.lokma.uz https://lakma.uz https://*.lakma.uz https://localhost capacitor://localhost http://localhost"
+        },
+        {
+          "key": "Link",
+          "value": "<https://api.lokma.uz>; rel=preconnect"
         }
       ]
     }

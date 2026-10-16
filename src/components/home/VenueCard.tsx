@@ -1,3 +1,4 @@
+import { usePrefetchVenue } from '../../hooks/queries';
 import React, { memo } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
@@ -20,12 +21,15 @@ interface Props {
 }
 
 export const VenueCard = memo(function VenueCard({ venue, onPress }: Props) {
+  const prefetch = usePrefetchVenue();
   const { isFavorite, toggle } = useFavorites();
   const fav = isFavorite(venue.id);
 
   return (
     <Pressable
       onPress={onPress}
+      onPressIn={() => prefetch(venue.slug)}
+      onHoverIn={() => prefetch(venue.slug)}
       style={({ pressed }) => [styles.card, pressed && styles.pressed]}
       accessibilityRole="button"
       accessibilityLabel={venue.name}

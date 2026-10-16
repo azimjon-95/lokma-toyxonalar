@@ -73,8 +73,22 @@ Server: **[lokma-toyxonalar-server](https://github.com/azimjon-95/lokma-toyxonal
 2. Server **docs/API.md** dagi endpointlarni shu shaklda qaytarsin.
 3. Ilovani qayta ishga tushiring — boshqa hech narsa o'zgartirish shart emas.
 
-URL bo'sh bo'lsa ilova `src/services/mockApi.ts` bilan ishlaydi; u serverning aynan o'zi kabi javob beradi
-(narx formulasi, slot band qilish, 409 xatosi va h.k.), shuning uchun backend uchun namuna sifatida ham foydali.
+URL berilmasa standart `https://api.lokma.uz` ishlatiladi. **Mock ma'lumot yo'q** — ilova doim haqiqiy server bilan ishlaydi.
+
+## Tezlik: ma'lumot qanday tez yuklanadi
+
+Server: Redis kesh (`lokma-toyxonalar-server`, README → «Кэш»). Ilova tomonida:
+
+- **Saqlangan kesh** (`src/lib/queryClient.ts`): to'yxonalar ro'yxati, "tez orada bo'sh" va to'yxona sahifalari AsyncStorage/localStorage'da
+  saqlanadi (12 soat). Ilova qayta ochilganda ro'yxat **darhol** chiqadi, yangisi fonda keladi (stale-while-revalidate).
+- **Haqiqiy joylashuvni kutish:** so'rovlar standart (Toshkent) koordinata bilan ketmaydi va keyin takrorlanmaydi
+  (`useLocation().ready`; aniqlanmasa 1,2 s dan keyin standart joy). So'nggi joylashuv ham eslab qolinadi.
+- **Niyat bo'yicha oldindan yuklash:** karta bosishga tayyorlanganda (`onPressIn` / hover) va bosh sahifada eng tepadagi 4 ta
+  to'yxona + joriy oy kalendari oldindan yuklanadi (`usePrefetchVenue`) — sahifa ochilganda tayyor.
+- **Skeleton'lar** (`components/ui/Skeleton*.tsx`): spinner o'rniga kelajakdagi kontent shakli; to'yxona sahifasi ro'yxat keshidan
+  rasm/nom/narxni darhol ko'rsatadi.
+- **Tarmoq:** so'rov vaqt chegarasi 10 s, 5xx/tarmoq xatosida 2 marta qisqa kutish bilan qayta uriniladi, `AbortSignal` bilan bekor qilinadi,
+  `Link: rel=preconnect` sarlavhasi (vercel.json) API bilan ulanishni HTML bilan parallel boshlaydi.
 
 ## Tuzilma
 
@@ -87,10 +101,10 @@ app/                         Expo Router (fayl = sahifa)
   (tabs)/favorites.tsx       Saralanganlar
   venue/[slug].tsx           To'yxona: galereya, kalendar, seanslar, menyu, videochi, kortej, hisob, bron
 src/
-  config/env.ts              API_URL, standart joylashuv va radius
-  services/api.ts            yagona ma'lumot manbai (server yoki mock)
+  config/env.ts              API_URL (standart api.lokma.uz), standart joylashuv va radius
+  lib/queryClient.ts         react-query: saqlangan kesh, qayta urinish, staleTime
+  services/api.ts            yagona ma'lumot manbai (server)
   services/http.ts           fetch: timeout, xatolar, Bearer token
-  services/mockApi.ts        demo server
   services/pricing.ts        narx formulasi (server bilan bir xil bo'lishi kerak)
   hooks/queries.ts           react-query hooklari
   store/location.tsx         joylashuvni avtomatik aniqlash va kuzatish (1 km)

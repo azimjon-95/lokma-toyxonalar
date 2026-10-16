@@ -13,8 +13,9 @@ import { LokmaSwitch } from '../../src/components/home/LokmaSwitch';
 import { FilterSheet, type AdvancedFilter } from '../../src/components/home/FilterSheet';
 import { LocationSheet } from '../../src/components/home/LocationSheet';
 import { Button } from '../../src/components/ui/Button';
-import { EmptyState, ErrorState, Loading } from '../../src/components/ui/ScreenState';
-import { useVenues } from '../../src/hooks/queries';
+import { EmptyState, ErrorState } from '../../src/components/ui/ScreenState';
+import { FeaturedSkeleton, VenueListSkeleton } from '../../src/components/ui/Skeletons';
+import { usePrefetchVenue, useVenues } from '../../src/hooks/queries';
 import { useDebounced } from '../../src/hooks/useDebounced';
 import { useLocation } from '../../src/store/location';
 import { useChromeTone } from '../../src/hooks/useChromeTone';
@@ -44,6 +45,14 @@ export default function HomeScreen() {
   // "Mashhur": shu hududdagi eng yuqori reytingli to'yxona (filtrlardan mustaqil)
   const popular = useVenues({ sort: 'rating' });
   const featured = popular.data?.[0];
+  // Eng tepadagi to'yxonalar sahifasi oldindan yuklanadi: birinchi bosish "darhol" ochiladi
+  const prefetchVenue = usePrefetchVenue();
+  useEffect(() => {
+    const top = [featured?.slug, ...(venues.data ?? []).slice(0, 3).map((v) => v.slug)].filter(Boolean) as string[];
+    if (!top.length) return undefined;
+    const t = setTimeout(() => new Set(top).forEach(prefetchVenue), 700);
+    return () => clearTimeout(t);
+  }, [featured?.slug, venues.data, prefetchVenue]);
   const hasFilter = filter.quick !== 'all' || !!filter.event_type || filter.sort !== DEFAULT_FILTER.sort || loc.radiusKm !== 20;
   const placeLabel = loc.place.kind === 'all' ? 'Barcha' : loc.label.split(',')[0];
 
@@ -101,6 +110,16 @@ export default function HomeScreen() {
           <HomeSearchBar ref={searchRef} value={search} onChange={setSearch} placeLabel={placeLabel} onPlacePress={() => setPlaceOpen(true)} />
         </View>
 
+        {popular.isPending && !popular.isError && !q && (
+          <>
+            <View style={styles.gapL}>
+              <SectionHeader title="Mashhur to‘yxonalar" serif />
+            </View>
+            <View style={styles.gapS}>
+              <FeaturedSkeleton />
+            </View>
+          </>
+        )}
         {!!featured && !q && (
           <>
             <View style={styles.gapL}>
@@ -132,8 +151,8 @@ export default function HomeScreen() {
     </View>
   );
 
-  const empty = venues.isLoading ? (
-    <Loading />
+  const empty = venues.isPending && !venues.isError ? (
+    <VenueListSkeleton />
   ) : venues.isError ? (
     <ErrorState message={(venues.error as Error).message} onRetry={() => venues.refetch()} />
   ) : (

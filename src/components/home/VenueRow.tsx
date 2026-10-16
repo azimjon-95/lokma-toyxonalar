@@ -7,13 +7,15 @@ import type { VenueListItem } from '../../types';
 import { formatKm, formatNumber } from '../../lib/format';
 import { relativeDayLabel, SESSION_LABEL } from '../../lib/dates';
 import { useFavorites } from '../../store/favorites';
+import { usePrefetchVenue } from '../../hooks/queries';
 
 /** Ro'yxatdagi ixcham karta: chapda rasm, o'rtada holat/nom/masofa, o'ngda narx */
 export const VenueRow = memo(function VenueRow({ venue, onPress }: { venue: VenueListItem; onPress: () => void }) {
   const { isFavorite, toggle } = useFavorites();
   const fav = isFavorite(venue.id);
+  const prefetch = usePrefetchVenue();
   return (
-    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={venue.name} style={({ pressed }) => [styles.card, pressed && { transform: [{ scale: 0.985 }] }]}>
+    <Pressable onPress={onPress} onPressIn={() => prefetch(venue.slug)} onHoverIn={() => prefetch(venue.slug)} accessibilityRole="button" accessibilityLabel={venue.name} style={({ pressed }) => [styles.card, pressed && { transform: [{ scale: 0.985 }] }]}>
       <View style={styles.thumbWrap}>
         <Image source={venue.photos[0]} style={StyleSheet.absoluteFill} contentFit="cover" transition={200} placeholder={{ blurhash: 'L6PZfSi_.AyE_3t7t7R**0o#DgR4' }} />
         <View style={styles.thumbGo}>

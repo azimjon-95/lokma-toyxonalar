@@ -6,6 +6,7 @@ import { colors, layout, radius, spacing, typography } from '../../theme';
 import type { FreeSoonItem } from '../../types';
 import { formatKm, formatNumber } from '../../lib/format';
 import { relativeDayLabel, SESSION_LABEL } from '../../lib/dates';
+import { usePrefetchVenue } from '../../hooks/queries';
 
 const GAP = 12;
 const AUTOPLAY_MS = 4000;
@@ -22,6 +23,7 @@ export function FreeSoonCarousel({ items, onPress }: Props) {
   const ref = useRef<FlatList<FreeSoonItem>>(null);
   const [index, setIndex] = useState(0);
   const touching = useRef(false);
+  const prefetch = usePrefetchVenue();
 
   useEffect(() => {
     if (items.length < 2) return;
@@ -58,6 +60,7 @@ export function FreeSoonCarousel({ items, onPress }: Props) {
         renderItem={({ item }) => (
           <Pressable
             onPress={() => onPress(item.venue.slug)}
+            onPressIn={() => prefetch(item.venue.slug)}
             style={({ pressed }) => [styles.card, { width: cardW }, pressed && { opacity: 0.94 }]}
             accessibilityRole="button"
             accessibilityLabel={`${item.venue.name}, ${relativeDayLabel(item.date)} ${SESSION_LABEL[item.session]} bo‘sh`}

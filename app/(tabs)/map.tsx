@@ -11,6 +11,7 @@ import { useChromeTone } from '../../src/hooks/useChromeTone';
 import { useLocation } from '../../src/store/location';
 import { TopFog } from '../../src/components/ui/TopFog';
 import { MapCarousel } from '../../src/components/map/MapCarousel';
+import { MapCardSkeleton } from '../../src/components/ui/Skeletons';
 import { RadiusSwitch } from '../../src/components/map/RadiusSwitch';
 import { AnimatedCount } from '../../src/components/map/AnimatedCount';
 import { WIDE_RADIUS_KM, directionsUrl, northOf } from '../../src/lib/mapGeo';
@@ -71,7 +72,7 @@ export default function MapScreen() {
   const insets = useSafeAreaInsets();
   useChromeTone('light');
   const mapRef = useRef<MapView>(null);
-  const { data: venues = [], isFetching } = useVenues({ sort: 'distance' });
+  const { data: venues = [], isFetching, isPending } = useVenues({ sort: 'distance' });
   const [selId, setSelId] = useState<string | null>(null);
   const [dockH, setDockH] = useState(190);
   const [placeOpen, setPlaceOpen] = useState(false);
@@ -99,7 +100,8 @@ export default function MapScreen() {
   const open = useCallback((v: VenueListItem) => router.push({ pathname: '/venue/[slug]', params: { slug: v.slug } }), [router]);
   const route = useCallback((v: VenueListItem) => { void Linking.openURL(directionsUrl(loc.coords, { lat: v.lat, lng: v.lng })); }, [loc.coords]);
   const nextRadius = RADII.find((r) => r > loc.radiusKm);
-  const empty = !isFetching && venues.length === 0;
+  const loadingList = isPending && venues.length === 0;
+  const empty = !isPending && !isFetching && venues.length === 0;
 
   return (
     <View style={styles.container}>
@@ -154,7 +156,9 @@ export default function MapScreen() {
       </View>
 
       <View style={styles.dock} onLayout={(e) => setDockH(Math.round(e.nativeEvent.layout.height))} pointerEvents="box-none">
-        {empty ? (
+        {loadingList ? (
+          <MapCardSkeleton />
+        ) : empty ? (
           <View style={styles.empty}>
             <Ionicons name="search-outline" size={22} color={colors.primary} />
             <View style={{ flex: 1 }}>

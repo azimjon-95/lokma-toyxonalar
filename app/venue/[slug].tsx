@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { colors, fontFamily } from '../../src/theme';
-import { useCalendar, useQuote, useVenue } from '../../src/hooks/queries';
+import { useCalendar, useQuote, useVenue, useVenuePreview } from '../../src/hooks/queries';
 import { useFavorites } from '../../src/store/favorites';
 import { useLokma } from '../../src/lib/lokma';
 import { VenueHero, WAVE_HEIGHT } from '../../src/components/venue/VenueHero';
@@ -23,7 +23,8 @@ import { QuoteSummary } from '../../src/components/venue/QuoteSummary';
 import { BookingSheet } from '../../src/components/venue/BookingSheet';
 import { Button } from '../../src/components/ui/Button';
 import { TopFog } from '../../src/components/ui/TopFog';
-import { ErrorState, Loading } from '../../src/components/ui/ScreenState';
+import { ErrorState } from '../../src/components/ui/ScreenState';
+import { VenuePageSkeleton } from '../../src/components/ui/Skeletons';
 import { formatSum } from '../../src/lib/format';
 import {
   SESSION_LABEL, addDays, formatDayLong, isWeekend, parseISODate, startOfToday, toISODate, toMonthKey,
@@ -43,6 +44,7 @@ export default function VenueScreen() {
   const { embedded } = useLokma();
   const { isFavorite, toggle } = useFavorites();
   const venueQ = useVenue(slug);
+  const preview = useVenuePreview(slug); // ro'yxat keshidan: rasm/nom sahifa yuklanguncha ko'rinib turadi
   const venue = venueQ.data;
 
   const [hallIdx, setHallIdx] = useState(0);
@@ -136,7 +138,7 @@ export default function VenueScreen() {
   const tone = onPage ? 'light' : 'dark';
   useChromeTone(tone);
 
-  if (venueQ.isLoading) return <View style={[styles.fill, { paddingTop: insets.top }]}><Loading /></View>;
+  if (venueQ.isPending && !venueQ.isError) return <VenuePageSkeleton preview={preview} topInset={insets.top} onBack={embedded ? undefined : goBack} />;
   if (venueQ.isError || !venue) {
     return (
       <View style={[styles.fill, { paddingTop: insets.top }]}>

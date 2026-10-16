@@ -6,6 +6,7 @@ import { colors, fontFamily, radius, typography } from '../../theme';
 import type { VenueListItem } from '../../types';
 import { formatKm, formatNumber } from '../../lib/format';
 import { relativeDayLabel, SESSION_LABEL } from '../../lib/dates';
+import { usePrefetchVenue } from '../../hooks/queries';
 
 const GAP = 12;
 const SIDE = 16;
@@ -87,10 +88,13 @@ export function MapCarousel({ venues, selectedId, onSelect, onOpen, onDirections
 
 function Card({ v, width, active, onOpen, onDirections }: { v: VenueListItem; width: number; active: boolean; onOpen: (v: VenueListItem) => void; onDirections: (v: VenueListItem) => void }) {
   const scale = useRef(new Animated.Value(active ? 1 : 0.96)).current;
+  const prefetch = usePrefetchVenue();
+  // Tanlangan (ko'rinib turgan) to'yxona sahifasi oldindan yuklanadi — "Ochish" bosilganda tayyor
+  useEffect(() => { if (active) prefetch(v.slug); }, [active, prefetch, v.slug]);
   useEffect(() => { Animated.spring(scale, { toValue: active ? 1 : 0.96, useNativeDriver: true, damping: 14, stiffness: 180 }).start(); }, [active, scale]);
   return (
     <Animated.View style={{ transform: [{ scale }], width }}>
-      <Pressable onPress={() => onOpen(v)} accessibilityRole="button" accessibilityLabel={`${v.name}ni ochish`} style={[styles.card, active && styles.cardOn]}>
+      <Pressable onPress={() => onOpen(v)} onPressIn={() => prefetch(v.slug)} accessibilityRole="button" accessibilityLabel={`${v.name}ni ochish`} style={[styles.card, active && styles.cardOn]}>
         <View style={styles.photoWrap}>
           <Image source={v.photos[0]} style={styles.photo} contentFit="cover" transition={250} />
           <View style={styles.rating}>

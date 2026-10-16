@@ -1,4 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
 import { Platform } from 'react-native';
 import { DEFAULT_LOCATION, DEFAULT_RADIUS_KM } from '../config/env';
@@ -30,6 +31,11 @@ interface LocationValue {
   isFallback: boolean;
   /** Qo'shimcha matn: manzilning to'liq ko'rinishi ("Uy | Namangan, ...") */
   detail: string;
+  /**
+   * Haqiqiy (yoki saqlangan) joylashuv bor — to'yxona so'rovlari shundan keyin boshlanadi. Aniqlanmasa ham 1,2 s dan
+   * keyin standart joy bilan davom etiladi (foydalanuvchi uzoq kutmasin).
+   */
+  ready: boolean;
   radiusKm: number;
   setRadiusKm: (km: number) => void;
   refresh: () => void;
@@ -65,16 +71,40 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
   const [detail, setDetail] = useState('');
   // GPS kuzatuvi faqat 'gps' rejimida yangilaydi (qo'lda tanlangan joyni bosib ketmasin)
   const placeRef = useRef<PlaceKind>('gps');
+  /** Haqiqiy joylashuv (GPS / Lokma manzili / hudud) keldimi */
+  const realRef = useRef(false);
+  const [graceOver, setGraceOver] = useState(false);
+  const [restored, setRestored] = useState(false);
+
+  // So'nggi ma'lum joylashuv: ilova qayta ochilganda darhol shu joy bilan, saqlangan keshdan ko'rsatamiz
+  useEffect(() => {
+    const t = setTimeout(() => setGraceOver(true), 1200);
+    AsyncStorage.getItem('lokma_last_loc_v1').then((raw) => {
+      if (!raw || realRef.current || placeRef.current !== 'gps') return;
+      try {
+        const sv = JSON.parse(raw) as { lat: number; lng: number; label?: string };
+        if (Number.isFinite(sv.lat) && Number.isFinite(sv.lng)) {
+          setCoords({ lat: sv.lat, lng: sv.lng });
+          if (sv.label) setLabel(sv.label);
+          setRestored(true);
+        }
+      } catch { /* buzilgan yozuv */ }
+    }).catch(() => {});
+    return () => clearTimeout(t);
+  }, []);
 
   const apply = useCallback(async (c: LatLng) => {
     if (placeRef.current !== 'gps') return;
+    realRef.current = true;
     setCoords(c);
     setIsFallback(false);
     setStatus('ready');
     // Manzil nomini faqat 1 km dan ko'p siljiganda yangilaymiz
     if (!lastLabelAt.current || distanceKm(lastLabelAt.current, c) > 1) {
       lastLabelAt.current = c;
-      setLabel(await labelFor(c));
+      const l = await labelFor(c);
+      setLabel(l);
+      AsyncStorage.setItem('lokma_last_loc_v1', JSON.stringify({ ...c, label: l })).catch(() => {});
     }
   }, []);
 
@@ -111,6 +141,7 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
     watcher.current?.remove();
     watcher.current = null;
     placeRef.current = p.kind;
+    realRef.current = true;
     setIsFallback(false);
     setStatus('ready');
     if (p.kind === 'address') {
@@ -155,9 +186,10 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
   }, [lokma.settled, lokma.visible, lokma.defaultAddress, setPlace, start]);
   useEffect(() => () => watcher.current?.remove(), []);
 
+  const ready = !isFallback || status !== 'locating' || graceOver || restored;
   const value = useMemo(
-    () => ({ coords, label, detail, status, isFallback, radiusKm, setRadiusKm, refresh: start, place, setPlace }),
-    [coords, label, detail, status, isFallback, radiusKm, start, place, setPlace],
+    () => ({ coords, label, detail, status, isFallback, ready, radiusKm, setRadiusKm, refresh: start, place, setPlace }),
+    [coords, label, detail, status, isFallback, ready, radiusKm, start, place, setPlace],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

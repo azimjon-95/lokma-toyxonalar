@@ -6,20 +6,21 @@ import { colors, layout, spacing, typography, fontFamily } from '../../src/theme
 import { useVenues } from '../../src/hooks/queries';
 import { useFavorites } from '../../src/store/favorites';
 import { VenueCard } from '../../src/components/home/VenueCard';
-import { EmptyState, Loading } from '../../src/components/ui/ScreenState';
+import { EmptyState } from '../../src/components/ui/ScreenState';
+import { VenueListSkeleton } from '../../src/components/ui/Skeletons';
 
 export default function FavoritesScreen() {
   const router = useRouter();
   const { ids } = useFavorites();
   // Saralanganlar radiusdan qat'i nazar ko'rinishi uchun keng radius
-  const { data = [], isLoading } = useVenues({ sort: 'distance', radiusKm: 500 });
+  const { data = [], isPending } = useVenues({ sort: 'distance', radiusKm: 500 });
   const list = useMemo(() => data.filter((v) => ids.includes(v.id)), [data, ids]);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <Text style={styles.title}>Saralangan</Text>
-      {isLoading ? (
-        <Loading />
+      {isPending ? (
+        <VenueListSkeleton count={3} />
       ) : (
         <FlatList
           data={list}

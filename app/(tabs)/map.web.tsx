@@ -12,6 +12,7 @@ import { TopFog } from '../../src/components/ui/TopFog';
 import { MapCanvas, type MapCanvasHandle, type MapProvider } from '../../src/components/map/MapCanvas';
 import { MAP_DIAG } from '../../src/lib/yandex';
 import { MapCarousel } from '../../src/components/map/MapCarousel';
+import { MapCardSkeleton } from '../../src/components/ui/Skeletons';
 import { RadiusSwitch } from '../../src/components/map/RadiusSwitch';
 import { AnimatedCount } from '../../src/components/map/AnimatedCount';
 import { WIDE_RADIUS_KM, directionsUrl } from '../../src/lib/mapGeo';
@@ -25,7 +26,7 @@ export default function MapWeb() {
   const loc = useLocation();
   const insets = useSafeAreaInsets();
   useChromeTone('light');
-  const { data: venues = [], isLoading, isFetching } = useVenues({ sort: 'distance' });
+  const { data: venues = [], isPending, isFetching } = useVenues({ sort: 'distance' });
   const mapRef = useRef<MapCanvasHandle>(null);
   const [sel, setSel] = useState<{ id: string | null; pan: boolean; seq: number }>({ id: null, pan: false, seq: 0 });
   const [dockH, setDockH] = useState(190);
@@ -43,7 +44,8 @@ export default function MapWeb() {
   const wide = loc.radiusKm >= WIDE_RADIUS_KM;
   const topInset = insets.top + 176;
   const nextRadius = RADII.find((r) => r > loc.radiusKm);
-  const empty = !isLoading && !isFetching && venues.length === 0;
+  const loadingList = isPending && venues.length === 0;
+  const empty = !isPending && !isFetching && venues.length === 0;
 
   return (
     <View style={styles.container}>
@@ -104,7 +106,9 @@ export default function MapWeb() {
 
       {/* Pastki kartochkalar */}
       <View style={styles.dock} onLayout={(e) => setDockH(Math.round(e.nativeEvent.layout.height))} pointerEvents="box-none">
-        {empty ? (
+        {loadingList ? (
+          <MapCardSkeleton />
+        ) : empty ? (
           <View style={styles.empty}>
             <Ionicons name="search-outline" size={22} color={colors.primary} />
             <View style={{ flex: 1 }}>

@@ -7,13 +7,15 @@ import { colors, fontFamily } from '../../theme';
 import type { VenueListItem } from '../../types';
 import { formatKm, formatNumber } from '../../lib/format';
 import { useFavorites } from '../../store/favorites';
+import { usePrefetchVenue } from '../../hooks/queries';
 
 /** "Mashhur to'yxonalar" — eng yuqori reytingli to'yxona, katta rasmli karta */
 export function FeaturedVenueCard({ venue, onPress }: { venue: VenueListItem; onPress: () => void }) {
   const { isFavorite, toggle } = useFavorites();
   const fav = isFavorite(venue.id);
+  const prefetch = usePrefetchVenue();
   return (
-    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={`${venue.name}, top tanlov`} style={({ pressed }) => [styles.card, pressed && { transform: [{ scale: 0.985 }] }]}>
+    <Pressable onPress={onPress} onPressIn={() => prefetch(venue.slug)} onHoverIn={() => prefetch(venue.slug)} accessibilityRole="button" accessibilityLabel={`${venue.name}, top tanlov`} style={({ pressed }) => [styles.card, pressed && { transform: [{ scale: 0.985 }] }]}>
       <Image source={venue.photos[0]} style={StyleSheet.absoluteFill} contentFit="cover" transition={250} placeholder={{ blurhash: 'L6PZfSi_.AyE_3t7t7R**0o#DgR4' }} />
       <LinearGradient colors={['rgba(20,14,30,0)', 'rgba(20,14,30,0.25)', 'rgba(20,14,30,0.78)']} locations={[0.25, 0.55, 1]} style={StyleSheet.absoluteFill} />
 
