@@ -15,6 +15,7 @@ import { MapCarousel } from '../../src/components/map/MapCarousel';
 import { RadiusSwitch } from '../../src/components/map/RadiusSwitch';
 import { AnimatedCount } from '../../src/components/map/AnimatedCount';
 import { WIDE_RADIUS_KM, directionsUrl } from '../../src/lib/mapGeo';
+import { LocationSheet } from '../../src/components/home/LocationSheet';
 import type { VenueListItem } from '../../src/types';
 
 const RADII = [10, 20, 50];
@@ -29,6 +30,7 @@ export default function MapWeb() {
   const [sel, setSel] = useState<{ id: string | null; pan: boolean; seq: number }>({ id: null, pan: false, seq: 0 });
   const [dockH, setDockH] = useState(190);
   const [tileProblem, setTileProblem] = useState(false);
+  const [placeOpen, setPlaceOpen] = useState(false);
   const [provider, setProvider] = useState<{ p: MapProvider; reasons: string[] } | null>(null);
   const onProvider = useCallback((p: MapProvider, reasons: string[]) => setProvider({ p, reasons }), []);
 
@@ -61,18 +63,21 @@ export default function MapWeb() {
 
       {/* Tepa panel */}
       <View style={[styles.top, { paddingTop: insets.top + 8 }]} pointerEvents="box-none">
-        <View style={styles.titleCard}>
-          <View style={styles.pinIcon}><Ionicons name="location" size={20} color={colors.white} /></View>
+        <Pressable
+          style={({ pressed }) => [styles.titleCard, pressed && { opacity: 0.92 }]}
+          onPress={() => setPlaceOpen(true)}
+          accessibilityRole="button"
+          accessibilityLabel={`Joylashuvni o'zgartirish. Hozir: ${loc.label}`}
+        >
+          <View style={styles.pinIcon}><Ionicons name={loc.place.kind === 'gps' ? 'navigate' : 'location'} size={20} color={colors.white} /></View>
           <View style={{ flex: 1 }}>
             <Text style={styles.title}>Atrofimda</Text>
-            <View style={styles.subRow}>
-              <Text style={styles.sub} numberOfLines={1}>
-                <AnimatedCount value={venues.length} style={styles.count} /> ta to‘yxona · {loc.label}
-              </Text>
-              {isFetching ? <View style={styles.live} /> : null}
-            </View>
+            <Text style={styles.sub} numberOfLines={1}>
+              <AnimatedCount value={venues.length} style={styles.count} /> ta to‘yxona · {loc.label}
+            </Text>
           </View>
-        </View>
+          <Ionicons name="chevron-down" size={20} color={colors.textSecondary} />
+        </Pressable>
         {wide ? (
           <View style={styles.wideChip}><Ionicons name="earth" size={15} color={colors.white} /><Text style={styles.wideText}>Butun O‘zbekiston</Text></View>
         ) : (
@@ -94,6 +99,8 @@ export default function MapWeb() {
         <Fab icon="expand" label="Hammasini ko'rsatish" onPress={() => mapRef.current?.fitAll()} />
         <Fab icon="locate" label="Joylashuvimga qaytish" color="#2F6BFF" onPress={() => { loc.refresh(); mapRef.current?.recenter(); }} />
       </View>
+
+      <LocationSheet visible={placeOpen} onClose={() => setPlaceOpen(false)} compact />
 
       {/* Pastki kartochkalar */}
       <View style={styles.dock} onLayout={(e) => setDockH(Math.round(e.nativeEvent.layout.height))} pointerEvents="box-none">

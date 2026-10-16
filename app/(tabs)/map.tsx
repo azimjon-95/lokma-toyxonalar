@@ -14,6 +14,7 @@ import { MapCarousel } from '../../src/components/map/MapCarousel';
 import { RadiusSwitch } from '../../src/components/map/RadiusSwitch';
 import { AnimatedCount } from '../../src/components/map/AnimatedCount';
 import { WIDE_RADIUS_KM, directionsUrl, northOf } from '../../src/lib/mapGeo';
+import { LocationSheet } from '../../src/components/home/LocationSheet';
 import { formatPinPrice } from '../../src/lib/format';
 import { toISODate } from '../../src/lib/dates';
 import type { LatLng, VenueListItem } from '../../src/types';
@@ -73,6 +74,7 @@ export default function MapScreen() {
   const { data: venues = [], isFetching } = useVenues({ sort: 'distance' });
   const [selId, setSelId] = useState<string | null>(null);
   const [dockH, setDockH] = useState(190);
+  const [placeOpen, setPlaceOpen] = useState(false);
   const today = useMemo(() => toISODate(new Date()), []);
   const selectedId = venues.some((v) => v.id === selId) ? selId : venues[0]?.id ?? null;
   const wide = loc.radiusKm >= WIDE_RADIUS_KM;
@@ -122,21 +124,29 @@ export default function MapScreen() {
       <TopFog height={insets.top} tone="light" />
 
       <View style={[styles.top, { paddingTop: insets.top + 8 }]} pointerEvents="box-none">
-        <View style={styles.titleCard}>
-          <View style={styles.pinIcon}><Ionicons name="location" size={20} color={colors.white} /></View>
+        <Pressable
+          style={({ pressed }) => [styles.titleCard, pressed && { opacity: 0.92 }]}
+          onPress={() => setPlaceOpen(true)}
+          accessibilityRole="button"
+          accessibilityLabel={`Joylashuvni o'zgartirish. Hozir: ${loc.label}`}
+        >
+          <View style={styles.pinIcon}><Ionicons name={loc.place.kind === 'gps' ? 'navigate' : 'location'} size={20} color={colors.white} /></View>
           <View style={{ flex: 1 }}>
             <Text style={styles.title}>Atrofimda</Text>
             <Text style={styles.sub} numberOfLines={1}>
               <AnimatedCount value={venues.length} style={styles.count} /> ta to‘yxona · {loc.label}{isFetching ? ' …' : ''}
             </Text>
           </View>
-        </View>
+          <Ionicons name="chevron-down" size={20} color={colors.textSecondary} />
+        </Pressable>
         {wide ? (
           <View style={styles.wideChip}><Ionicons name="earth" size={15} color={colors.white} /><Text style={styles.wideText}>Butun O‘zbekiston</Text></View>
         ) : (
           <RadiusSwitch value={loc.radiusKm} options={RADII} onChange={loc.setRadiusKm} />
         )}
       </View>
+
+      <LocationSheet visible={placeOpen} onClose={() => setPlaceOpen(false)} compact />
 
       <View style={[styles.fabs, { bottom: dockH + 12 }]} pointerEvents="box-none">
         <Fab icon="expand" label="Hammasini ko'rsatish" onPress={() => fit(true)} />

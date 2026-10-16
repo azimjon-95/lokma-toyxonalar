@@ -9,12 +9,19 @@ import { REGIONS } from '../../lib/regions';
 /*
  * "Qayerdagi to'yxonalar?" — Lokma'dagi manzillar, joriy joylashuv,
  * boshqa hudud (masalan, tug'ilgan joy) yoki butun O'zbekiston.
+ * compact — faqat manzillarim va joriy (jonli) joylashuv (xarita uchun).
  */
-export function LocationSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
+export function LocationSheet({ visible, onClose, compact = false }: { visible: boolean; onClose: () => void; compact?: boolean }) {
   const loc = useLocation();
   const lokma = useLokma();
   const addresses = lokma.addresses.filter((a) => a.lat != null && a.lng != null);
   const pick = (fn: () => void) => { fn(); onClose(); };
+  // Jonli joylashuv holati: foydalanuvchi ruxsat berilmaganini oldindan ko'rsin
+  const gpsSub = loc.place.kind !== 'gps' ? 'Telefon GPS orqali'
+    : loc.status === 'locating' ? 'Aniqlanmoqda…'
+    : loc.status === 'denied' ? 'Ruxsat berilmagan — sozlamalardan yoqing'
+    : loc.status === 'error' ? 'Aniqlab bo‘lmadi — qayta urinib ko‘ring'
+    : 'Telefon GPS orqali · jonli';
   const on = (kind: string, id?: string) => loc.place.kind === kind && (id === undefined || loc.place.id === id);
 
   const Row = ({ icon, title, sub, active, onPress }: { icon: keyof typeof Ionicons.glyphMap; title: string; sub?: string; active: boolean; onPress: () => void }) => (
@@ -35,21 +42,25 @@ export function LocationSheet({ visible, onClose }: { visible: boolean; onClose:
       <Pressable style={styles.backdrop} onPress={onClose} />
       <View style={styles.sheet}>
         <View style={styles.handle} />
-        <Text style={styles.h}>Qayerdagi to‘yxonalar?</Text>
+        <Text style={styles.h}>{compact ? 'Qayerning atrofi?' : 'Qayerdagi to‘yxonalar?'}</Text>
         <ScrollView style={{ maxHeight: 520 }} contentContainerStyle={{ paddingBottom: spacing[6] }}>
           {addresses.length > 0 && <Text style={styles.group}>Mening manzillarim</Text>}
           {addresses.map((a) => (
             <Row key={a.id} icon="home-outline" title={a.title || a.address || 'Manzil'} sub={a.title ? a.address : a.city}
               active={on('address', a.id)} onPress={() => pick(() => loc.setPlace({ kind: 'address', address: a }))} />
           ))}
-          <Row icon="navigate-outline" title="Joriy joylashuv" sub="Telefon GPS orqali" active={on('gps')} onPress={() => pick(() => loc.setPlace({ kind: 'gps' }))} />
-          <Row icon="globe-outline" title="Butun O‘zbekiston" sub="Barcha to‘yxonalar" active={on('all')} onPress={() => pick(() => loc.setPlace({ kind: 'all' }))} />
+          <Row icon="navigate-outline" title="Joriy joylashuv" sub={gpsSub} active={on('gps')} onPress={() => pick(() => loc.setPlace({ kind: 'gps' }))} />
+          {!compact && (
+            <>
+              <Row icon="globe-outline" title="Butun O‘zbekiston" sub="Barcha to‘yxonalar" active={on('all')} onPress={() => pick(() => loc.setPlace({ kind: 'all' }))} />
 
-          <Text style={styles.group}>Boshqa hudud (masalan, tug‘ilgan joyingiz)</Text>
-          {REGIONS.map((r) => (
-            <Row key={r.id} icon="location-outline" title={r.name} sub={`${r.radiusKm} km atrofida`}
-              active={on('region', r.id)} onPress={() => pick(() => loc.setPlace({ kind: 'region', region: r }))} />
-          ))}
+              <Text style={styles.group}>Boshqa hudud (masalan, tug‘ilgan joyingiz)</Text>
+              {REGIONS.map((r) => (
+                <Row key={r.id} icon="location-outline" title={r.name} sub={`${r.radiusKm} km atrofida`}
+                  active={on('region', r.id)} onPress={() => pick(() => loc.setPlace({ kind: 'region', region: r }))} />
+              ))}
+            </>
+          )}
         </ScrollView>
       </View>
     </Modal>
