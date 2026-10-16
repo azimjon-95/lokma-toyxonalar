@@ -10,6 +10,9 @@
 export const YANDEX_KEY = process.env.EXPO_PUBLIC_YANDEX_MAPS_KEY ?? '';
 export const MAP_PROVIDER = (process.env.EXPO_PUBLIC_MAP_PROVIDER ?? 'auto') as 'auto' | 'yandex' | 'osm';
 export const YANDEX_LANG = process.env.EXPO_PUBLIC_YANDEX_LANG ?? 'ru_RU';
+/** Alohida paketlar kalitlari: qidiruv/geokoder va marshrut (ixtiyoriy; xaritaning o'zi MAPS kalit bilan ishlaydi) */
+const GEOCODER_KEY = process.env.EXPO_PUBLIC_YANDEX_GEOCODER_KEY ?? '';
+const ROUTING_KEY = process.env.EXPO_PUBLIC_YANDEX_ROUTING_KEY ?? '';
 export const yandexEnabled = YANDEX_KEY.length > 0 && MAP_PROVIDER !== 'osm';
 
 export type YandexApi = typeof ymaps3;
@@ -23,7 +26,15 @@ export function loadYandexMaps(timeoutMs = 10_000): Promise<YandexApi | null> {
   loading = new Promise<YandexApi | null>((resolve) => {
     const g = globalThis as unknown as { ymaps3?: YandexApi };
     const done = (api: YandexApi | null) => { if (!api) loading = null; resolve(api); };
-    const finish = () => { void Promise.resolve(g.ymaps3!.ready).then(() => done(g.ymaps3 ?? null), () => done(null)); };
+    const finish = () => {
+      void Promise.resolve(g.ymaps3!.ready).then(() => {
+        try {
+          // search/router xizmatlari alohida kalit bilan (berilgan bo'lsa)
+          g.ymaps3!.getDefaultConfig().setApikeys({ ...(GEOCODER_KEY ? { search: GEOCODER_KEY, suggest: GEOCODER_KEY } : {}), ...(ROUTING_KEY ? { router: ROUTING_KEY } : {}) });
+        } catch { /* kalit sozlanmasa ham xarita ishlayveradi */ }
+        done(g.ymaps3 ?? null);
+      }, () => done(null));
+    };
     if (g.ymaps3) { finish(); return; }
     const timer = setTimeout(() => done(null), timeoutMs);
     const s = document.createElement('script');
