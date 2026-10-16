@@ -9,7 +9,7 @@ import { useVenues } from '../../src/hooks/queries';
 import { useChromeTone } from '../../src/hooks/useChromeTone';
 import { useLocation } from '../../src/store/location';
 import { TopFog } from '../../src/components/ui/TopFog';
-import { LeafletMap, type LeafletMapHandle } from '../../src/components/map/LeafletMap';
+import { MapCanvas, type MapCanvasHandle } from '../../src/components/map/MapCanvas';
 import { MapCarousel } from '../../src/components/map/MapCarousel';
 import { RadiusSwitch } from '../../src/components/map/RadiusSwitch';
 import { AnimatedCount } from '../../src/components/map/AnimatedCount';
@@ -24,7 +24,7 @@ export default function MapWeb() {
   const insets = useSafeAreaInsets();
   useChromeTone('light');
   const { data: venues = [], isLoading, isFetching } = useVenues({ sort: 'distance' });
-  const mapRef = useRef<LeafletMapHandle>(null);
+  const mapRef = useRef<MapCanvasHandle>(null);
   const [sel, setSel] = useState<{ id: string | null; pan: boolean; seq: number }>({ id: null, pan: false, seq: 0 });
   const [dockH, setDockH] = useState(190);
   const [tileProblem, setTileProblem] = useState(false);
@@ -42,7 +42,7 @@ export default function MapWeb() {
 
   return (
     <View style={styles.container}>
-      <LeafletMap
+      <MapCanvas
         ref={mapRef}
         center={loc.coords}
         radiusKm={loc.radiusKm}

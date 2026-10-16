@@ -6,20 +6,40 @@ Android, iOS va Web (Telegram Mini App uchun asos) — bitta kod.
 ## Xarita ("Xarita" tabi)
 
 To'yxonalar **real xaritada**, server koordinatalari bo'yicha, foydalanuvchi manzili markazida:
-- **Web / Telegram Mini App** — Leaflet (`src/components/map/LeafletMap.web.tsx`), **native** (iOS/Android) — react-native-maps (`app/(tabs)/map.tsx`).
+- **Web / Telegram Mini App** — Yandex Maps (`YandexMap.web.tsx`), zaxira — Leaflet/OSM (`LeafletMap.web.tsx`), tanlovchi — `MapCanvas.web.tsx`; **native** (iOS/Android) — react-native-maps (`app/(tabs)/map.tsx`).
 - Tanlangan radius (10 / 20 / 50 km yoki hudud) doira bo'lib chiziladi, o'zgarganda silliq kengayadi va xarita uchib moslashadi.
 - Narx belgilari aniq joyida; bir-birini bosib qolsa jamlanadi (bosilsa yaqinlashadi). Yashil nuqta — bugun bo'sh.
 - Pastda kartochkalar: surilsa xarita shu to'yxonaga o'tadi, belgi bosilsa kartochka siljiydi. "Yo'l" tugmasi — Yandex Maps.
 - "Siz" nuqtasi, "Hammasini ko'rsatish", "Joylashuvimga qaytish", natija bo'lmasa radiusni kengaytirish taklifi.
 
-**Plitkalar (tiles):** standart — CARTO Voyager (OpenStreetMap ma'lumoti). U bepul, lekin **tijorat/yuqori trafik uchun
-litsenziya talab qiladi** — production'da MapTiler / Stadia / Mapbox kabi provayder kalitini bering:
+### Xarita provayderi: Yandex Maps (standart) → OpenStreetMap (zaxira)
 
+Web / Telegram Mini App'da xarita **Yandex Maps JS API v3** (vektor, O'zbekiston uchun to'liq ko'cha/uy ma'lumoti).
+Kalit bo'lmasa yoki Yandex ishlamasa (kalit/domen ruxsat etilmagan, 403, internet, 9 soniya javob yo'q) xarita
+**avtomatik OpenStreetMap'ga (Leaflet)** o'tadi — foydalanuvchi xaritasiz qolmaydi.
+
+**1. Kalit olish:** [developer.tech.yandex.ru](https://developer.tech.yandex.ru/) → kabinet → *Подключить API* →
+**«JavaScript API и HTTP Геокодер»**. Kalit ~15 daqiqada faollashadi.
+**2. Majburiy:** kalitda **«Ограничение по HTTP Referer»** to'ldirilgan bo'lishi shart (v3 busiz ishlamaydi). Domenlarni yozing:
+`wedding.lokma.uz`, `*.lokma.uz`, `lokma.uz`, Vercel domeningiz (`*.vercel.app` preview'lar uchun), sinov uchun `localhost`.
+Tariflar/limitlar: kabinetdagi *Тарифы* bo'limi (ishga tushirishdan oldin ko'ring).
+**3. Sozlash:**
+```
+EXPO_PUBLIC_YANDEX_MAPS_KEY=<kalit>        # bo'sh bo'lsa — to'g'ridan-to'g'ri OSM
+EXPO_PUBLIC_MAP_PROVIDER=auto              # auto (standart) | yandex | osm
+EXPO_PUBLIC_YANDEX_LANG=ru_RU              # Yandex o'zbekchani qo'llamaydi: ru_RU, en_US, tr_TR, uk_UA ...
+```
+Vercel: Settings → Environment Variables'ga qo'shib, **Redeploy** qiling (`EXPO_PUBLIC_*` build vaqtida kiradi; lokalda `npx expo start --clear`).
+
+**Yo'l ko'rsatish / joy:** `yandex.uz/maps` havolalari (telefonda Yandex Maps / Go ilovasi o'zi ochiladi).
+
+**OSM zaxirasi plitkalari:** CARTO Voyager (bepul, lekin tijorat/yuqori trafik uchun litsenziya kerak). Almashtirish:
 ```
 EXPO_PUBLIC_MAP_TILES_URL=https://api.maptiler.com/maps/streets-v2/256/{z}/{x}/{y}.png?key=...
 EXPO_PUBLIC_MAP_ATTRIBUTION=© MapTiler © OpenStreetMap contributors
 ```
-`{r}` (retina) ixtiyoriy. Android native xarita uchun `GOOGLE_MAPS_ANDROID_KEY` kerak (avvalgidek).
+**Native (iOS/Android):** hozircha Apple/Google xaritasi (react-native-maps; Android uchun `GOOGLE_MAPS_ANDROID_KEY`).
+Yandex MapKit native'da `react-native-yamap` + dev build talab qiladi — alohida bosqich.
 
 ## Ishga tushirish
 
