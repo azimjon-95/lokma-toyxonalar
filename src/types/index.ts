@@ -144,7 +144,12 @@ export interface Booking {
   deposit: number;
   /** To'lov sahifasi (Click/Payme/Uzum) */
   payment_url: string | null;
-  /** Seans shu vaqtgacha band qilib turiladi (TZ: 30 daqiqa) */
+  /** Seans shu vaqtgacha ushlab turiladi: egasi javobi uchun ~24 soat, "kelishildi" bo'lsa — avans muddatigacha */
   hold_until: string;
   created_at: string;
+  /** Egasi qarori: new — ko'rib chiqilmoqda, agreed — kelishildi (avans muddati bor) */
+  stage?: 'new' | 'agreed';
+  advance_due?: string;
+  reject_reason?: string;
+  cancelled_by?: 'customer' | 'owner' | 'system';
 }

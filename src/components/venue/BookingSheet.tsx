@@ -58,7 +58,6 @@ export function BookingSheet({ visible, onClose, request, summary }: Props) {
   };
 
   const done = booking.data;
-  const holdTime = done ? new Date(done.hold_until).toTimeString().slice(0, 5) : '';
 
   return (
     <BottomSheet visible={visible} onClose={onClose} keyboardAvoiding sheetStyle={[styles.sheet, { paddingTop: 0, paddingBottom: insets.bottom + spacing[4] }]}>
@@ -70,7 +69,7 @@ export function BookingSheet({ visible, onClose, request, summary }: Props) {
               </View>
               <Text style={styles.title}>Bron qabul qilindi</Text>
               <Text style={styles.sub}>
-                №{done.number} · {summary.subtitle}. Seans {holdTime} gacha siz uchun band qilib turiladi — avansni shu vaqtgacha to‘lang. Administrator tez orada bog‘lanadi.
+                №{done.number} · {summary.subtitle}. So‘rovingiz to‘yxonaga yuborildi: egasi ko‘rib chiqib, siz bilan telefon orqali bog‘lanadi va avans haqida kelishasiz. Shu vaqt davomida seans siz uchun ushlab turiladi (odatda 24 soatgacha). Holatni “Bronlarim” bo‘limida kuzating.
               </Text>
               <Button title="Yopish" variant="outline" fullWidth onPress={onClose} />
             </View>

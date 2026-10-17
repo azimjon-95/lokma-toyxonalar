@@ -18,6 +18,7 @@ interface MyBooking {
   id: string; number: string; status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
   venue_name: string; hall_name: string; date: string; session: keyof typeof SESSION_LABEL;
   guests: number; menu_name?: string; total: number; deposit: number; payment_url?: string | null; cancel_reason?: string;
+  stage?: 'new' | 'agreed'; advance_due?: string; reject_reason?: string; cancelled_by?: 'customer' | 'owner' | 'system';
 }
 const STATUS: Record<MyBooking['status'], { label: string; bg: string; fg: string }> = {
   pending: { label: 'Kutilmoqda', bg: '#FFF4D6', fg: '#8A5A00' },
@@ -25,6 +26,28 @@ const STATUS: Record<MyBooking['status'], { label: string; bg: string; fg: strin
   completed: { label: "O'tgan", bg: colors.surfaceSecondary, fg: colors.textSecondary },
   cancelled: { label: 'Bekor qilingan', bg: colors.errorBg, fg: colors.error },
 };
+/**
+ * Mijozga ko'rinadigan holat: egasi qarori hisobga olinadi.
+ *   pending+new    — "Ko'rib chiqilmoqda" (egasi bog'lanadi)
+ *   pending+agreed — "Kelishildi" (avansni muddatgacha olib borish kerak)
+ *   cancelled      — rad etildi / to'yxona bekor qildi / muddat tugadi / o'zingiz bekor qildingiz
+ */
+function viewOf(b: MyBooking): { label: string; bg: string; fg: string; note?: string } {
+  if (b.status === 'pending') {
+    if (b.stage === 'agreed') {
+      const due = b.advance_due ? new Date(b.advance_due).toLocaleDateString('ru-RU', { timeZone: 'Asia/Tashkent', day: '2-digit', month: '2-digit' }) : '';
+      return { label: 'Kelishildi', bg: '#E6F0FF', fg: '#1D4ED8', note: due ? `Avansni ${due} gacha olib boring — shundan keyin bron tasdiqlanadi.` : 'Avansni kelishilgan muddatgacha olib boring.' };
+    }
+    return { label: "Ko'rib chiqilmoqda", bg: '#FFF4D6', fg: '#8A5A00', note: "To'yxona so'rovingizni ko'rib chiqadi va siz bilan telefon orqali bog'lanadi." };
+  }
+  if (b.status === 'cancelled') {
+    if (b.cancel_reason === 'owner_rejected') return { label: 'Rad etildi', bg: colors.errorBg, fg: colors.error, note: b.reject_reason ? `Sabab: ${b.reject_reason}` : undefined };
+    if (b.cancel_reason === 'owner_cancelled') return { label: "To'yxona bekor qildi", bg: colors.errorBg, fg: colors.error, note: b.reject_reason ? `Sabab: ${b.reject_reason}` : undefined };
+    if (b.cancel_reason === 'expired') return { label: 'Muddati tugadi', bg: colors.surfaceSecondary, fg: colors.textSecondary, note: 'Avans yoki javob muddati o‘tdi, seans bo‘shatildi.' };
+  }
+  const s = STATUS[b.status];
+  return { label: s.label, bg: s.bg, fg: s.fg };
+}
 const SOFT = { shadowColor: '#2A0F1C', shadowOpacity: 0.08, shadowRadius: 10, shadowOffset: { width: 0, height: 3 }, elevation: 2 } as const;
 
 export default function MyBookingsScreen() {
@@ -85,7 +108,7 @@ export default function MyBookingsScreen() {
           ListHeaderComponent={error ? <Text style={styles.err}>{error}</Text> : null}
           ListEmptyComponent={<EmptyState title="Hali bron yo'q" subtitle="To'yxona tanlang va birinchi bronni qiling" />}
           renderItem={({ item: b }) => {
-            const st = STATUS[b.status];
+            const st = viewOf(b);
             const upcoming = b.date >= today && (b.status === 'pending' || b.status === 'confirmed');
             return (
               <View style={[styles.card, SOFT]}>
@@ -106,7 +129,7 @@ export default function MyBookingsScreen() {
                   <View><Text style={styles.moneyLabel}>Jami</Text><Text style={styles.moneyValue}>{formatNumber(b.total)} so'm</Text></View>
                   <View style={{ alignItems: 'flex-end' }}><Text style={styles.moneyLabel}>Avans</Text><Text style={styles.moneyValue}>{formatNumber(b.deposit)} so'm</Text></View>
                 </View>
-                {b.status === 'cancelled' && !!b.cancel_reason && b.cancel_reason !== 'customer' && <Text style={styles.reason}>Sabab: {b.cancel_reason}</Text>}
+                {!!st.note && <Text style={b.status === 'cancelled' ? styles.reason : styles.sub}>{st.note}</Text>}
                 {upcoming && (
                   <View style={styles.actions}>
                     {b.status === 'pending' && !!b.payment_url && (
