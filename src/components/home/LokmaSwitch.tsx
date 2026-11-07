@@ -1,6 +1,7 @@
 import React from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
+import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, fontFamily } from '../../theme';
@@ -34,8 +35,10 @@ function Tile({ photo, title, sub, tone, icon, onPress }: {
     >
       <Image source={photo} style={StyleSheet.absoluteFill} contentFit="cover" transition={200} />
       <LinearGradient colors={shade} locations={[0, 0.45, 1]} style={StyleSheet.absoluteFill} />
-      {/* Belgi o'z o'lchamidagi oq (xira shisha) quti ustida */}
+      {/* Belgi xira oq shisha (blur) qutida: orqasidagi rasm yumshoq ko'rinadi */}
       <View style={styles.iconBox}>
+        <BlurView intensity={45} tint="light" style={StyleSheet.absoluteFill} />
+        <View style={styles.iconTint} />
         <Image source={icon} style={styles.icon} contentFit="contain" accessibilityIgnoresInvertColors />
       </View>
       {/* Strelka yuqori o'ngda — nom pastda to'liq kenglikda (Lokma Go tugmalari bilan bir xil) */}
@@ -69,22 +72,23 @@ export function LokmaSwitch() {
   );
 }
 
-// Barcha bo'limlarda (Lokma Go, Market, To'yxonalar) tugma o'lchami bir xil: balandlik 102
+// Barcha bo'limlarda (Lokma Go, Market, To'yxonalar) tugma o'lchami bir xil: balandlik 76 (ixcham)
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', gap: 10, paddingHorizontal: 16 },
   tile: {
-    flex: 1, minWidth: 0, height: 102, borderRadius: 18, overflow: 'hidden',
+    flex: 1, minWidth: 0, height: 76, borderRadius: 16, overflow: 'hidden',
     shadowColor: '#000', shadowOpacity: 0.14, shadowRadius: 10, shadowOffset: { width: 0, height: 5 }, elevation: 4,
   },
   iconBox: {
-    position: 'absolute', top: 9, left: 11, width: 44, height: 44, borderRadius: 13,
-    backgroundColor: 'rgba(255,255,255,0.94)', alignItems: 'center', justifyContent: 'center',
+    position: 'absolute', top: 8, left: 9, width: 36, height: 36, borderRadius: 11, overflow: 'hidden',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.55)', alignItems: 'center', justifyContent: 'center',
     shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 6, shadowOffset: { width: 0, height: 3 },
     ...(Platform.OS === 'web' ? ({ backdropFilter: 'blur(8px)' } as object) : null),
   },
-  icon: { width: 34, height: 34 },
-  bottom: { position: 'absolute', left: 11, right: 10, bottom: 10 },
-  title: { fontFamily: fontFamily.bold, fontSize: 14, lineHeight: 16, color: colors.white },
-  sub: { fontFamily: fontFamily.regular, fontSize: 10.5, lineHeight: 13, color: 'rgba(255,255,255,0.92)', marginTop: 1 },
-  arrow: { position: 'absolute', top: 10, right: 10, width: 24, height: 24, borderRadius: 12, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center' },
+  iconTint: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(255,255,255,0.42)' },
+  icon: { width: 26, height: 26 },
+  bottom: { position: 'absolute', left: 9, right: 8, bottom: 8 },
+  title: { fontFamily: fontFamily.bold, fontSize: 13, lineHeight: 15, color: colors.white },
+  sub: { fontFamily: fontFamily.regular, fontSize: 10, lineHeight: 12, color: 'rgba(255,255,255,0.92)', marginTop: 1 },
+  arrow: { position: 'absolute', top: 9, right: 9, width: 22, height: 22, borderRadius: 11, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center' },
 });
