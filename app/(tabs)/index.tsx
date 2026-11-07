@@ -20,6 +20,7 @@ import { useDebounced } from '../../src/hooks/useDebounced';
 import { useLocation } from '../../src/store/location';
 import { useChromeTone } from '../../src/hooks/useChromeTone';
 import type { VenueListItem } from '../../src/types';
+import { useTabBarSpace } from '../../src/lib/tabBarSpace';
 
 const SHEET_OVERLAP = 52;
 const SORT_LABEL = { distance: 'Eng yaqini birinchi', price_asc: 'Arzonidan', price_desc: 'Qimmatidan', rating: 'Eng yaxshi birinchi' } as const;
@@ -28,6 +29,7 @@ type Filter = Omit<AdvancedFilter, 'radiusKm'>;
 const DEFAULT_FILTER: Filter = { quick: 'all', sort: 'rating' };
 
 export default function HomeScreen() {
+  const tabSpace = useTabBarSpace();   // suzuvchi pastki menyu balandligi
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const loc = useLocation();
@@ -189,7 +191,7 @@ export default function HomeScreen() {
         renderItem={renderItem}
         ListHeaderComponent={header}
         ListEmptyComponent={empty}
-        contentContainerStyle={{ paddingBottom: 24 }}
+        contentContainerStyle={{ paddingBottom: 24 + tabSpace }}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
         showsVerticalScrollIndicator={false}

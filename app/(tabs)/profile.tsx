@@ -9,6 +9,7 @@ import { useLokma } from '../../src/lib/lokma';
 import { getLang, setLang as setUiLang, NO_TR, type Lang } from '../../src/lib/i18n';
 import { useFavorites } from '../../src/store/favorites';
 import { formatPhone, isValidPhone } from '../../src/lib/format';
+import { useTabBarSpace } from '../../src/lib/tabBarSpace';
 
 /*
  * ═══ PROFIL — Lokma Go profil sahifasining aynan nusxasi ═══
@@ -30,6 +31,7 @@ interface ReferralInfo { enabled?: boolean; referralLink?: string; referralCount
 const som = (n?: number) => Math.round(n ?? 0).toLocaleString('ru-RU').replace(/,/g, ' ');
 
 export default function ProfileScreen() {
+  const tabSpace = useTabBarSpace();   // suzuvchi pastki menyu balandligi
   const router = useRouter();
   const lokma = useLokma();
   const { ids: favIds } = useFavorites();
@@ -87,7 +89,7 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: 32 + tabSpace }]} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         <Text style={styles.pageTitle}>Profil</Text>
 
         {/* Hero */}
