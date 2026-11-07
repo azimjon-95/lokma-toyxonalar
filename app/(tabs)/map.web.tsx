@@ -18,6 +18,7 @@ import { AnimatedCount } from '../../src/components/map/AnimatedCount';
 import { WIDE_RADIUS_KM, directionsUrl } from '../../src/lib/mapGeo';
 import { LocationSheet } from '../../src/components/home/LocationSheet';
 import type { VenueListItem } from '../../src/types';
+import { useTabBarSpace } from '../../src/lib/tabBarSpace';
 
 const RADII = [10, 20, 50];
 
@@ -25,6 +26,7 @@ export default function MapWeb() {
   const router = useRouter();
   const loc = useLocation();
   const insets = useSafeAreaInsets();
+  const tabSpace = useTabBarSpace();   // suzuvchi pastki menyu balandligi — panel va tugmalar uning USTIDA turadi
   useChromeTone('light');
   const { data: venues = [], isPending, isFetching } = useVenues({ sort: 'distance' });
   const mapRef = useRef<MapCanvasHandle>(null);
@@ -56,7 +58,7 @@ export default function MapWeb() {
         venues={venues}
         selection={{ id: selectedId, pan: sel.pan && selectedId === sel.id, seq: sel.seq }}
         onSelect={select}
-        insets={{ top: topInset, bottom: dockH + 24 }}
+        insets={{ top: topInset, bottom: dockH + 24 + tabSpace }}
         onTileProblem={setTileProblem}
         onProvider={onProvider}
       />
@@ -97,7 +99,7 @@ export default function MapWeb() {
       </View>
 
       {/* Suzuvchi tugmalar */}
-      <View style={[styles.fabs, { bottom: dockH + 12 }]} pointerEvents="box-none">
+      <View style={[styles.fabs, { bottom: dockH + 12 + tabSpace }]} pointerEvents="box-none">
         <Fab icon="expand" label="Hammasini ko'rsatish" onPress={() => mapRef.current?.fitAll()} />
         <Fab icon="locate" label="Joylashuvimga qaytish" color="#2F6BFF" onPress={() => { loc.refresh(); mapRef.current?.recenter(); }} />
       </View>
@@ -105,7 +107,7 @@ export default function MapWeb() {
       <LocationSheet visible={placeOpen} onClose={() => setPlaceOpen(false)} compact />
 
       {/* Pastki kartochkalar */}
-      <View style={styles.dock} onLayout={(e) => setDockH(Math.round(e.nativeEvent.layout.height))} pointerEvents="box-none">
+      <View style={[styles.dock, { bottom: tabSpace }]} onLayout={(e) => setDockH(Math.round(e.nativeEvent.layout.height))} pointerEvents="box-none">
         {loadingList ? (
           <MapCardSkeleton />
         ) : empty ? (

@@ -8,8 +8,10 @@ import { useFavorites } from '../../src/store/favorites';
 import { VenueCard } from '../../src/components/home/VenueCard';
 import { EmptyState } from '../../src/components/ui/ScreenState';
 import { VenueListSkeleton } from '../../src/components/ui/Skeletons';
+import { useTabBarSpace } from '../../src/lib/tabBarSpace';
 
 export default function FavoritesScreen() {
+  const tabSpace = useTabBarSpace();   // suzuvchi pastki menyu balandligi
   const router = useRouter();
   const { ids } = useFavorites();
   // Saralanganlar radiusdan qat'i nazar ko'rinishi uchun keng radius
@@ -25,7 +27,7 @@ export default function FavoritesScreen() {
         <FlatList
           data={list}
           keyExtractor={(v) => v.id}
-          contentContainerStyle={{ padding: layout.screenPadding }}
+          contentContainerStyle={{ padding: layout.screenPadding, paddingBottom: layout.screenPadding + tabSpace }}
           renderItem={({ item }) => (
             <VenueCard venue={item} onPress={() => router.push({ pathname: '/venue/[slug]', params: { slug: item.slug } })} />
           )}

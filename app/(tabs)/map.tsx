@@ -19,6 +19,7 @@ import { LocationSheet } from '../../src/components/home/LocationSheet';
 import { formatPinPrice } from '../../src/lib/format';
 import { toISODate } from '../../src/lib/dates';
 import type { LatLng, VenueListItem } from '../../src/types';
+import { useTabBarSpace } from '../../src/lib/tabBarSpace';
 
 const RADII = [10, 20, 50];
 const ease = (t: number) => 1 - (1 - t) ** 3;
@@ -70,6 +71,7 @@ export default function MapScreen() {
   const router = useRouter();
   const loc = useLocation();
   const insets = useSafeAreaInsets();
+  const tabSpace = useTabBarSpace();   // suzuvchi pastki menyu balandligi — panel va tugmalar uning USTIDA turadi
   useChromeTone('light');
   const mapRef = useRef<MapView>(null);
   const { data: venues = [], isFetching, isPending } = useVenues({ sort: 'distance' });
@@ -86,8 +88,8 @@ export default function MapScreen() {
     const pts: LatLng[] = all || wide
       ? [loc.coords, ...venues.map((v) => ({ lat: v.lat, lng: v.lng }))]
       : [northOf(loc.coords, loc.radiusKm), northOf(loc.coords, -loc.radiusKm), { lat: loc.coords.lat, lng: loc.coords.lng + loc.radiusKm / (111.32 * Math.cos((loc.coords.lat * Math.PI) / 180)) }, { lat: loc.coords.lat, lng: loc.coords.lng - loc.radiusKm / (111.32 * Math.cos((loc.coords.lat * Math.PI) / 180)) }];
-    mapRef.current?.fitToCoordinates(pts.map((p) => ({ latitude: p.lat, longitude: p.lng })), { edgePadding: { top: topPad, bottom: dockH + 24, left: 28, right: 28 }, animated: true });
-  }, [loc.coords, loc.radiusKm, wide, venues, topPad, dockH]);
+    mapRef.current?.fitToCoordinates(pts.map((p) => ({ latitude: p.lat, longitude: p.lng })), { edgePadding: { top: topPad, bottom: dockH + 24 + tabSpace, left: 28, right: 28 }, animated: true });
+  }, [loc.coords, loc.radiusKm, wide, venues, topPad, dockH, tabSpace]);
 
   // Radius / manzil / natijalar o'zgarganda xarita moslashadi
   useEffect(() => { const t = setTimeout(() => fit(false), 120); return () => clearTimeout(t); }, [loc.coords, loc.radiusKm, venues.length, fit]);
@@ -150,12 +152,12 @@ export default function MapScreen() {
 
       <LocationSheet visible={placeOpen} onClose={() => setPlaceOpen(false)} compact />
 
-      <View style={[styles.fabs, { bottom: dockH + 12 }]} pointerEvents="box-none">
+      <View style={[styles.fabs, { bottom: dockH + 12 + tabSpace }]} pointerEvents="box-none">
         <Fab icon="expand" label="Hammasini ko'rsatish" onPress={() => fit(true)} />
         <Fab icon="locate" label="Joylashuvimga qaytish" color="#2F6BFF" onPress={() => { loc.refresh(); fit(false); }} />
       </View>
 
-      <View style={styles.dock} onLayout={(e) => setDockH(Math.round(e.nativeEvent.layout.height))} pointerEvents="box-none">
+      <View style={[styles.dock, { bottom: tabSpace }]} onLayout={(e) => setDockH(Math.round(e.nativeEvent.layout.height))} pointerEvents="box-none">
         {loadingList ? (
           <MapCardSkeleton />
         ) : empty ? (
