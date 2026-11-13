@@ -9,9 +9,11 @@ import { VenueCard } from '../../src/components/home/VenueCard';
 import { EmptyState } from '../../src/components/ui/ScreenState';
 import { VenueListSkeleton } from '../../src/components/ui/Skeletons';
 import { useTabBarSpace } from '../../src/lib/tabBarSpace';
+import { useNavScroll } from '../../src/lib/navCompact';
 
 export default function FavoritesScreen() {
   const tabSpace = useTabBarSpace();   // suzuvchi pastki menyu balandligi
+  const onScroll = useNavScroll();
   const router = useRouter();
   const { ids } = useFavorites();
   // Saralanganlar radiusdan qat'i nazar ko'rinishi uchun keng radius
@@ -25,6 +27,8 @@ export default function FavoritesScreen() {
         <VenueListSkeleton count={3} />
       ) : (
         <FlatList
+          onScroll={onScroll}
+          scrollEventThrottle={16}
           data={list}
           keyExtractor={(v) => v.id}
           contentContainerStyle={{ padding: layout.screenPadding, paddingBottom: layout.screenPadding + tabSpace }}
