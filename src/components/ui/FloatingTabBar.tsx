@@ -1,10 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, Animated, Easing, Platform, Pressable, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Tabs } from 'expo-router';
 import { colors } from '../../theme';
+import { setNavCompact, useNavCompact } from '../../lib/navCompact';
 import { TAB_BAR_HEIGHT, TAB_BAR_MAX_WIDTH, TAB_BAR_SIDE, tabBarBottomGap } from '../../lib/tabBarSpace';
 
 type TabBarProps = Parameters<NonNullable<React.ComponentProps<typeof Tabs>['tabBar']>>[0];
@@ -16,7 +18,8 @@ type TabBarProps = Parameters<NonNullable<React.ComponentProps<typeof Tabs>['tab
  * Yashirin tablar (expo-router `href: null` → tabBarItemStyle.display = 'none') ko'rsatilmaydi.
  */
 const PAD = 6;                                   // kapsula ichki chetidan (px)
-const IDLE = '#596070';                          // faolsiz ikonka rangi (Go/Market bilan bir xil)
+const IDLE = '#3A4152';                          // faolsiz ikonka rangi (Go/Market bilan bir xil)
+const COMPACT_SCALE = 0.8;                       // pastga scroll: kapsula 58 → 46.4 px (Go/Market bilan bir xil)
 const PILL = 'rgba(166, 30, 77, 0.12)';          // faol "pill" (vino 12%)
 const isWeb = Platform.OS === 'web';
 const EASE = Easing.bezier(0.22, 1, 0.36, 1);
@@ -27,6 +30,19 @@ export function FloatingTabBar({ state, descriptors, navigation }: TabBarProps) 
   const [reduceMotion, setReduceMotion] = useState(false);
   const x = useRef(new Animated.Value(0)).current;
   const placed = useRef(false);
+
+  // Instagram kabi: pastga scroll → kichrayadi (pastki chegara joyida), yuqoriga → qaytadi. Faqat transform (native driver) — silliq.
+  const compact = useNavCompact();
+  const scale = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    const to = compact ? COMPACT_SCALE : 1;
+    if (reduceMotion) { scale.setValue(to); return; }
+    Animated.timing(scale, { toValue: to, duration: 520, easing: EASE, useNativeDriver: !isWeb }).start();
+  }, [compact, reduceMotion, scale]);
+  // Boshqa tabga o'tilsa menyu to'liq holatga qaytadi
+  useEffect(() => { setNavCompact(false); }, [state.index]);
+  // Scale markaz atrofida — pastki chegara joyida qolishi uchun pastga siljitiladi: H × (1 − s) / 2
+  const ty = scale.interpolate({ inputRange: [COMPACT_SCALE, 1], outputRange: [(TAB_BAR_HEIGHT * (1 - COMPACT_SCALE)) / 2, 0], extrapolate: 'clamp' });
 
   useEffect(() => { AccessibilityInfo.isReduceMotionEnabled?.().then(setReduceMotion).catch(() => {}); }, []);
 
@@ -49,11 +65,20 @@ export function FloatingTabBar({ state, descriptors, navigation }: TabBarProps) 
 
   return (
     <View style={[styles.wrap, { paddingBottom: gap }]} pointerEvents="box-none">
-      <View style={styles.shadow} onLayout={onLayout}>
+      <Animated.View style={[styles.shadow, { transform: [{ translateY: ty }, { scale }] }]} onLayout={onLayout}>
         <View style={styles.glass}>
-          {/* Shisha: iOS va web'da haqiqiy xiralik; Android'da deyarli to'liq oq (blur beqaror) */}
-          {Platform.OS !== 'android' ? <BlurView intensity={isWeb ? 70 : 60} tint="light" style={StyleSheet.absoluteFill} /> : null}
-          <View style={[StyleSheet.absoluteFill, { backgroundColor: Platform.OS === 'android' ? 'rgba(255,255,255,0.97)' : 'rgba(255,255,255,0.6)' }]} />
+          {/* "LUPA" shishasi: orqadagi kontent yo'qolmaydi — yumshoq xiralashib, yorqin ko'rinib turadi (oz blur + shaffof oq + nur).
+              Android'da blur beqaror — deyarli to'liq oq. */}
+          {Platform.OS !== 'android' ? <BlurView intensity={isWeb ? 40 : 35} tint="light" style={StyleSheet.absoluteFill} /> : null}
+          {Platform.OS === 'android'
+            ? <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(255,255,255,0.97)' }]} />
+            : (
+              <>
+                <LinearGradient pointerEvents="none" style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} locations={[0, 0.4, 0.62, 1]}
+                  colors={['rgba(255,255,255,0.52)', 'rgba(255,255,255,0.15)', 'rgba(255,255,255,0.10)', 'rgba(255,255,255,0.40)']} />
+                <LinearGradient pointerEvents="none" style={[StyleSheet.absoluteFill, { bottom: '54%' }]} colors={['rgba(255,255,255,0.45)', 'rgba(255,255,255,0)']} />
+              </>
+            )}
           {activeIndex >= 0 && pillW > 0 ? (
             <Animated.View pointerEvents="none" style={[styles.pill, { width: pillW, transform: [{ translateX: x }] }]} />
           ) : null}
@@ -86,7 +111,7 @@ export function FloatingTabBar({ state, descriptors, navigation }: TabBarProps) 
             })}
           </View>
         </View>
-      </View>
+      </Animated.View>
     </View>
   );
 }
@@ -98,7 +123,7 @@ const styles = StyleSheet.create({
     shadowColor: '#101828', shadowOpacity: 0.16, shadowRadius: 14, shadowOffset: { width: 0, height: 8 }, elevation: 10,
   },
   glass: {
-    flex: 1, borderRadius: TAB_BAR_HEIGHT / 2, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.7)',
+    flex: 1, borderRadius: TAB_BAR_HEIGHT / 2, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.62)',
   },
   pill: { position: 'absolute', top: 6, bottom: 6, left: 0, borderRadius: 999, backgroundColor: PILL },
   row: { flex: 1, flexDirection: 'row', paddingHorizontal: PAD },

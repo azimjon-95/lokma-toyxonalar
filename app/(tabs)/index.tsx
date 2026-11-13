@@ -21,6 +21,7 @@ import { useLocation } from '../../src/store/location';
 import { useChromeTone } from '../../src/hooks/useChromeTone';
 import type { VenueListItem } from '../../src/types';
 import { useTabBarSpace } from '../../src/lib/tabBarSpace';
+import { useNavScroll } from '../../src/lib/navCompact';
 
 const SHEET_OVERLAP = 52;
 const SORT_LABEL = { distance: 'Eng yaqini birinchi', price_asc: 'Arzonidan', price_desc: 'Qimmatidan', rating: 'Eng yaxshi birinchi' } as const;
@@ -63,10 +64,10 @@ export default function HomeScreen() {
    * Tuman, status bar va Telegram tugmalari rangi shunga moslashadi.
    */
   const [onSheet, setOnSheet] = useState(false);
-  const onScroll = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
+  const onScroll = useNavScroll(useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const reached = e.nativeEvent.contentOffset.y > HERO_HEIGHT - SHEET_OVERLAP - 6;
     setOnSheet((p) => (p === reached ? p : reached));
-  }, []);
+  }, []));
   const tone = onSheet ? 'light' : 'dark';
   useChromeTone(tone);
 
@@ -196,7 +197,7 @@ export default function HomeScreen() {
         keyboardDismissMode="on-drag"
         showsVerticalScrollIndicator={false}
         onScroll={onScroll}
-        scrollEventThrottle={32}
+        scrollEventThrottle={16}
         // Pastga tortganda sahifa joyida qotib turadi (hero ostidan oq joy chiqmaydi)
         bounces={false}
         overScrollMode="never"
