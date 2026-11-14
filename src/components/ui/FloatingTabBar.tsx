@@ -29,6 +29,7 @@ export function FloatingTabBar({ state, descriptors, navigation }: TabBarProps) 
   const [width, setWidth] = useState(0);
   const [reduceMotion, setReduceMotion] = useState(false);
   const x = useRef(new Animated.Value(0)).current;
+  const stretch = useRef(new Animated.Value(1)).current;   // almashganda kapsula suyuq cho'ziladi
   const placed = useRef(false);
 
   // Instagram kabi: pastga scroll → kichrayadi (pastki chegara joyida), yuqoriga → qaytadi. Faqat transform (native driver) — silliq.
@@ -57,11 +58,19 @@ export function FloatingTabBar({ state, descriptors, navigation }: TabBarProps) 
     if (pillW <= 0 || activeIndex < 0) return;
     const to = PAD + activeIndex * pillW;
     if (!placed.current || reduceMotion) { x.setValue(to); placed.current = true; return; }
-    Animated.timing(x, { toValue: to, duration: 360, easing: EASE, useNativeDriver: !isWeb }).start();
-  }, [activeIndex, pillW, reduceMotion, x]);
+    // Prujinali siljish (Lokma Go/Market bilan bir xil his): sal oshib, o'rnashadi
+    Animated.spring(x, { toValue: to, stiffness: 300, damping: 28, mass: 1, useNativeDriver: !isWeb }).start();
+    stretch.setValue(1);
+    Animated.sequence([
+      Animated.timing(stretch, { toValue: 1.2, duration: 200, easing: EASE, useNativeDriver: !isWeb }),
+      Animated.timing(stretch, { toValue: 1, duration: 340, easing: EASE, useNativeDriver: !isWeb }),
+    ]).start();
+  }, [activeIndex, pillW, reduceMotion, x, stretch]);
 
   const onLayout = (e: LayoutChangeEvent) => setWidth(Math.round(e.nativeEvent.layout.width));
   const gap = tabBarBottomGap(insets.bottom);
+  // Pastga scroll (ixcham) — yorliqlar yashirinadi
+  const labelOpacity = scale.interpolate({ inputRange: [COMPACT_SCALE, 1], outputRange: [0, 1], extrapolate: 'clamp' });
 
   return (
     <View style={[styles.wrap, { paddingBottom: gap }]} pointerEvents="box-none">
@@ -80,7 +89,7 @@ export function FloatingTabBar({ state, descriptors, navigation }: TabBarProps) 
               </>
             )}
           {activeIndex >= 0 && pillW > 0 ? (
-            <Animated.View pointerEvents="none" style={[styles.pill, { width: pillW, transform: [{ translateX: x }] }]} />
+            <Animated.View pointerEvents="none" style={[styles.pill, { width: pillW, transform: [{ translateX: x }, { scaleX: stretch }] }]} />
           ) : null}
           <View style={styles.row}>
             {visible.map((route, i) => {
@@ -105,7 +114,8 @@ export function FloatingTabBar({ state, descriptors, navigation }: TabBarProps) 
                   accessibilityState={{ selected: focused }}
                   style={({ pressed }) => [styles.tab, pressed && { transform: [{ scale: 0.88 }] }]}
                 >
-                  {options.tabBarIcon?.({ focused, color, size: 26 })}
+                  {options.tabBarIcon?.({ focused, color, size: 23 })}
+                  <Animated.Text numberOfLines={1} style={[styles.label, { color, opacity: labelOpacity, fontWeight: focused ? '700' : '600' }]}>{label}</Animated.Text>
                 </Pressable>
               );
             })}
@@ -127,5 +137,6 @@ const styles = StyleSheet.create({
   },
   pill: { position: 'absolute', top: 6, bottom: 6, left: 0, borderRadius: 999, backgroundColor: PILL },
   row: { flex: 1, flexDirection: 'row', paddingHorizontal: PAD },
-  tab: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  tab: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 3 },
+  label: { fontSize: 10.5, lineHeight: 12, letterSpacing: 0.1 },
 });
