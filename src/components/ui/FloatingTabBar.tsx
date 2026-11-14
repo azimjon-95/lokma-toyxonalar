@@ -5,6 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Tabs } from 'expo-router';
+import { colors } from '../../theme';
 import { setNavCompact, useNavCompact } from '../../lib/navCompact';
 import { TAB_BAR_HEIGHT, TAB_BAR_MAX_WIDTH, TAB_BAR_SIDE, tabBarBottomGap } from '../../lib/tabBarSpace';
 
@@ -17,10 +18,9 @@ type TabBarProps = Parameters<NonNullable<React.ComponentProps<typeof Tabs>['tab
  * Yashirin tablar (expo-router `href: null` → tabBarItemStyle.display = 'none') ko'rsatilmaydi.
  */
 const PAD = 6;                                   // kapsula ichki chetidan (px)
-const IDLE = '#1C2030';                          // faolsiz ikonka rangi (Go/Market bilan bir xil)
+const IDLE = '#3A4152';                          // faolsiz ikonka rangi (Go/Market bilan bir xil)
 const COMPACT_SCALE = 0.8;                       // pastga scroll: kapsula 58 → 46.4 px (Go/Market bilan bir xil)
-const PILL = 'rgba(60, 64, 78, 0.18)';           // faol "pill": kulrang shisha (Instagram uslubi)
-const INK = '#0B0D14';                           // faol ikonka (qora)
+const PILL = 'rgba(166, 30, 77, 0.12)';          // faol "pill" (vino 12%)
 const isWeb = Platform.OS === 'web';
 const EASE = Easing.bezier(0.22, 1, 0.36, 1);
 
@@ -29,7 +29,6 @@ export function FloatingTabBar({ state, descriptors, navigation }: TabBarProps) 
   const [width, setWidth] = useState(0);
   const [reduceMotion, setReduceMotion] = useState(false);
   const x = useRef(new Animated.Value(0)).current;
-  const stretch = useRef(new Animated.Value(1)).current;   // pill almashganda suyuq-jele kabi cho'ziladi
   const placed = useRef(false);
 
   // Instagram kabi: pastga scroll → kichrayadi (pastki chegara joyida), yuqoriga → qaytadi. Faqat transform (native driver) — silliq.
@@ -58,13 +57,8 @@ export function FloatingTabBar({ state, descriptors, navigation }: TabBarProps) 
     if (pillW <= 0 || activeIndex < 0) return;
     const to = PAD + activeIndex * pillW;
     if (!placed.current || reduceMotion) { x.setValue(to); placed.current = true; return; }
-    Animated.timing(x, { toValue: to, duration: 520, easing: Easing.bezier(0.34, 1.32, 0.5, 1), useNativeDriver: !isWeb }).start();
-    stretch.setValue(1);
-    Animated.sequence([
-      Animated.timing(stretch, { toValue: 1.22, duration: 200, easing: EASE, useNativeDriver: !isWeb }),
-      Animated.timing(stretch, { toValue: 1, duration: 320, easing: EASE, useNativeDriver: !isWeb }),
-    ]).start();
-  }, [activeIndex, pillW, reduceMotion, x, stretch]);
+    Animated.timing(x, { toValue: to, duration: 360, easing: EASE, useNativeDriver: !isWeb }).start();
+  }, [activeIndex, pillW, reduceMotion, x]);
 
   const onLayout = (e: LayoutChangeEvent) => setWidth(Math.round(e.nativeEvent.layout.width));
   const gap = tabBarBottomGap(insets.bottom);
@@ -80,21 +74,20 @@ export function FloatingTabBar({ state, descriptors, navigation }: TabBarProps) 
             ? <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(255,255,255,0.97)' }]} />
             : (
               <>
-                <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(226,228,234,0.30)' }]} />
                 <LinearGradient pointerEvents="none" style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} locations={[0, 0.4, 0.62, 1]}
-                  colors={['rgba(255,255,255,0.50)', 'rgba(255,255,255,0.30)', 'rgba(255,255,255,0.26)', 'rgba(255,255,255,0.44)']} />
+                  colors={['rgba(255,255,255,0.52)', 'rgba(255,255,255,0.15)', 'rgba(255,255,255,0.10)', 'rgba(255,255,255,0.40)']} />
                 <LinearGradient pointerEvents="none" style={[StyleSheet.absoluteFill, { bottom: '54%' }]} colors={['rgba(255,255,255,0.45)', 'rgba(255,255,255,0)']} />
               </>
             )}
           {activeIndex >= 0 && pillW > 0 ? (
-            <Animated.View pointerEvents="none" style={[styles.pill, { width: pillW, transform: [{ translateX: x }, { scaleX: stretch }] }]} />
+            <Animated.View pointerEvents="none" style={[styles.pill, { width: pillW, transform: [{ translateX: x }] }]} />
           ) : null}
           <View style={styles.row}>
             {visible.map((route, i) => {
               const { options } = descriptors[route.key];
               const focused = i === activeIndex;
               const label = (typeof options.tabBarAccessibilityLabel === 'string' && options.tabBarAccessibilityLabel) || options.title || route.name;
-              const color = focused ? INK : IDLE;
+              const color = focused ? colors.primary : IDLE;
               const onPress = () => {
                 const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
                 if (!focused && !event.defaultPrevented) {
@@ -130,9 +123,9 @@ const styles = StyleSheet.create({
     shadowColor: '#101828', shadowOpacity: 0.16, shadowRadius: 14, shadowOffset: { width: 0, height: 8 }, elevation: 10,
   },
   glass: {
-    flex: 1, borderRadius: TAB_BAR_HEIGHT / 2, overflow: 'hidden', borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.72)',
+    flex: 1, borderRadius: TAB_BAR_HEIGHT / 2, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.62)',
   },
-  pill: { position: 'absolute', top: 6, bottom: 6, left: 0, borderRadius: 999, backgroundColor: PILL, borderWidth: 1, borderColor: 'rgba(255,255,255,0.5)' },
+  pill: { position: 'absolute', top: 6, bottom: 6, left: 0, borderRadius: 999, backgroundColor: PILL },
   row: { flex: 1, flexDirection: 'row', paddingHorizontal: PAD },
   tab: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 });
